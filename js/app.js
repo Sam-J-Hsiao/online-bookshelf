@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201344";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201344";
-import { lookupIsbn, translateWord } from "./api.js?v=202611201344";
-import { createStore, demoStore } from "./store.js?v=202611201344";
-import { createFlow } from "./flow.js?v=202611201344";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201348";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201348";
+import { lookupIsbn, translateWord } from "./api.js?v=202611201348";
+import { createStore, demoStore } from "./store.js?v=202611201348";
+import { createFlow } from "./flow.js?v=202611201348";
 
-const APP_VERSION = "202611201344";
+const APP_VERSION = "202611201348";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -497,7 +497,7 @@ function renderManage() {
     <li><label class="mrow">
       <input type="checkbox" data-pick="${b.id}" ${picked.has(b.id) ? "checked" : ""}><i class="box" aria-hidden="true"></i>
       ${thumb(b)}
-      <span class="info"><b>${esc(b.title)}</b><span>${esc(b.author || "作者未填")}・${esc(b.dewey || (b.deweyMain != null ? pad3(b.deweyMain) : "未分類"))} ${esc(deweyName(b.deweyMain))}</span></span>
+      <span class="info"><b>${esc(b.title)}</b><span>${esc(b.author || "作者未填")}・${b.deweyMain == null ? "未分類" : `${esc(b.dewey || pad3(b.deweyMain))} ${esc(deweyName(b.deweyMain))}`}</span></span>
       <span class="stat"><b>${b.pages ? pct(b) + "%" : "—"}</b><span>${(b.notes || []).length} 則筆記</span></span>
     </label></li>`).join("") || `<li class="empty-box"><b>書櫃是空的</b></li>`;
 }
