@@ -1,8 +1,16 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js";
-import { lookupIsbn, translateWord } from "./api.js";
-import { createStore, demoStore } from "./store.js";
-import { createFlow } from "./flow.js";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201339";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201339";
+import { lookupIsbn, translateWord } from "./api.js?v=202611201339";
+import { createStore, demoStore } from "./store.js?v=202611201339";
+import { createFlow } from "./flow.js?v=202611201339";
+
+const APP_VERSION = "202611201339";
+// 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
+fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
+  if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
+  try { if (sessionStorage.getItem("reloadedFor") === j.v) return; sessionStorage.setItem("reloadedFor", j.v); } catch { return; }
+  location.reload();
+}).catch(() => {});
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -427,14 +435,11 @@ function renderWho() {
   const u = a.mode === "cloud" ? a.user : null;
   const face = u?.photo ? `<img src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">`
     : u ? `<span>${esc((u.name || u.email || "?").trim()[0])}</span>` : `<span class="guest">${icon("user")}</span>`;
-  const id = u ? `<div class="menu-id"><b title="${esc(u.name || "")}">${esc(u.name || "")}</b><span title="${esc(u.email || "")}">${esc(u.email || "")}</span></div>`
-    : `<div class="menu-id"><b>${a.mode === "demo" ? "範例模式" : "本機模式"}</b><span>資料只存在這台裝置</span></div>`;
-  w.innerHTML = `<button class="avatar" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="帳號選單">${face}</button>
-    <div class="menu" id="menu" hidden>${id}
-      <button class="btn" data-view="manage">${icon("gear")}書籍管理</button>
-      <button class="btn" data-view="notes">${icon("note")}閱讀筆記</button>
-      ${u ? `<button class="btn" data-act="signout">${icon("out")}登出</button>` : a.mode === "demo" ? `<button class="btn" data-act="exitDemo">${icon("out")}結束範例模式</button>` : ""}
-    </div>`;
+  w.innerHTML = `<button class="avatar" data-view="manage" aria-label="帳號與書籍管理" title="帳號與書籍管理"${S.view === "manage" ? ' aria-current="page"' : ""}>${face}</button>`;
+  // 書籍管理頁頂端的帳號卡
+  $("#account").innerHTML = u
+    ? `<div class="acct-face">${face}</div><div class="acct-id"><b>${esc(u.name || "")}</b><span>${esc(u.email || "")}</span></div><button class="btn btn-sm" data-act="signout">${icon("out")}登出</button>`
+    : `<div class="acct-face">${face}</div><div class="acct-id"><b>${a.mode === "demo" ? "範例模式" : "本機模式"}</b><span>資料只存在這台裝置</span></div>${a.mode === "demo" ? `<button class="btn btn-sm" data-act="exitDemo">${icon("out")}結束範例模式</button>` : ""}`;
 }
 
 /* ───────── 縮圖（筆記總覽、書籍管理共用） ───────── */
@@ -526,15 +531,12 @@ function resetSure(btn, text) { clearTimeout(btn._t); delete btn.dataset.sure; b
 
 /* ───────── 全域點擊 ───────── */
 document.addEventListener("click", async e => {
-  const menu = $("#menu");
-  if (menu && !menu.hidden && !e.target.closest("#who")) menu.hidden = true;
   const t = e.target.closest("[data-act],[data-del-note],[data-del-word],[data-step],[data-status],[data-audio],[data-view],[data-open]");
   if (!t) return;
-  if (t.dataset.view) { if (menu) menu.hidden = true; return setView(t.dataset.view); }
+  if (t.dataset.view) return setView(t.dataset.view);
   if (t.dataset.open) return openInShelf(t.dataset.open);
   if (t.dataset.audio) { try { await new Audio(t.dataset.audio).play(); } catch { toast("無法播放發音", true); } return; }
   const act = t.dataset.act;
-  if (act === "menu") { const m = $("#menu"); m.hidden = !m.hidden; t.setAttribute("aria-expanded", String(!m.hidden)); return; }
   if (act === "signin") return store.signIn?.().catch(err => toast("登入失敗：" + (err.code || err.message), true));
   if (act === "signout") return store.signOut?.();
   if (act === "demo") { location.hash = "demo"; location.reload(); return; }
@@ -567,13 +569,13 @@ document.addEventListener("input", e => {
   const v = t.value.replace(/\D/g, "").slice(0, 3);
   if (v !== t.value) t.value = v;
 }, true);
-document.addEventListener("keydown", e => { if (e.key === "Escape") { const m = $("#menu"); if (m) m.hidden = true; } });
 
 function setView(v) {
   S.view = v;
   for (const [k, id] of [["shelf", "vShelf"], ["notes", "vNotes"], ["words", "vWords"], ["manage", "vManage"]]) $("#" + id).hidden = v !== k;
   document.querySelectorAll(".top .seg [data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
   if (v === "manage") { picked.clear(); renderManage(); }
+  renderWho();
   if (v === "notes") renderNotes();
   scrollTo({ top: 0 });
 }

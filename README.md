@@ -25,6 +25,16 @@
 
 Cover flow 由 `js/flow.js` 驅動：位置是連續值，觸控板水平滑動會一比一跟手，慣性結束後以彈簧（約 3% 回彈、0.3 秒停穩）吸附到最近的一本；也支援拖曳甩動、鍵盤左右鍵與底部滑桿。
 
+## 發布流程
+
+每次修改後、推上 GitHub 前執行：
+
+```bash
+python3 tools/release.py
+```
+
+它會替所有 CSS／JS 網址加上版本號（`?v=時間`），並更新 `version.json`。網站開啟時會比對版本，若伺服器上有新版就自動重新整理一次，使用者不必手動清快取。
+
 ## 檔案結構
 
 ```
@@ -38,6 +48,8 @@ js/isbn.js          ISBN 驗證與轉換
 js/store.js         資料儲存（Firebase 或本機）
 js/config.js        設定（Firebase、API 金鑰）
 firestore.rules     Firestore 安全規則
+tools/release.py    發布前加版本號
+version.json        目前版本（給網站比對用）
 ```
 
 不需要建置工具，直接用靜態網站託管即可（例如 GitHub Pages）。

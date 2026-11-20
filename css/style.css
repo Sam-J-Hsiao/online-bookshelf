@@ -112,19 +112,9 @@ svg { width: 20px; height: 20px; flex: none; }
 #who { display: flex; align-items: center; position: relative; }
 .avatar { width: 44px; height: 44px; border-radius: 50%; border: 0; padding: 4px; cursor: pointer; background: var(--base); box-shadow: var(--raise-sm); }
 .avatar img, .avatar span { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; object-fit: cover; font-weight: 700; color: var(--accent); }
-.menu {
-  position: absolute; right: 0; top: calc(100% + 12px); width: 260px; max-width: calc(100vw - 28px); padding: 10px; border-radius: var(--r-md);
-  background: var(--base); box-shadow: var(--raise); display: grid; gap: 2px; z-index: 40;
-}
-.menu-id { margin: 6px 12px 10px; padding-bottom: 12px; border-bottom: 1px solid color-mix(in srgb, var(--mute) 22%, transparent); line-height: 1.4; }
-.menu-id b, .menu-id span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.menu-id b { color: var(--ink); font-size: 15px; font-weight: 500; }
-.menu-id span { color: var(--mute); font-size: 13px; margin-top: 2px; }
-.menu .btn { justify-content: flex-start; box-shadow: none; background: transparent; min-height: 42px; padding: 0 12px; border-radius: 12px; font-size: 14px; }
-.menu .btn:hover { box-shadow: var(--inset-sm); }
-.menu .btn svg { width: 18px; height: 18px; color: var(--mute); }
 .avatar .guest { color: var(--mute); }
 .avatar .guest svg { width: 22px; height: 22px; }
+.avatar[aria-current="page"] { box-shadow: var(--inset-sm); }
 
 /* ─── 書架 ─── */
 .shelf { max-width: 1240px; margin: 0 auto; padding: 8px max(4vw, 16px) 0; }
@@ -434,3 +424,14 @@ input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 3
   .thumb { width: 42px; }
   .top .seg button { padding: 0 11px; }
 }
+
+/* 書籍管理頁頂端的帳號卡 */
+.account { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: var(--r-lg); box-shadow: var(--raise); margin-bottom: 36px; }
+.acct-face { width: 52px; height: 52px; border-radius: 50%; padding: 4px; box-shadow: var(--raise-sm); flex: none; }
+.acct-face img, .acct-face span { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; object-fit: cover; font-weight: 700; color: var(--accent); }
+.acct-id { flex: 1; min-width: 0; line-height: 1.45; }
+.acct-id b, .acct-id span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-id b { font-size: 16px; font-weight: 500; }
+.acct-id span { font-size: 13px; color: var(--mute); }
+.account .btn svg { width: 18px; height: 18px; }
+.account:empty { display: none; }
