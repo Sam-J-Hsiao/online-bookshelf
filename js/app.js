@@ -53,7 +53,7 @@ function renderToolbar() {
   };
   document.querySelectorAll("#grouping button").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === S.group));
   $("#grouping").hidden = gated();
-  $("#demoBar").innerHTML = store?.mode === "demo" ? `<span class="demo-pill">範例模式・資料只存在這台裝置<button class="btn btn-sm" data-act="exitDemo">結束</button></span>` : "";
+  $("#demoBar").innerHTML = store?.mode === "demo" ? `<span class="demo-pill">範例模式<span class="long">・資料只存在這台裝置</span><button class="btn btn-sm" data-act="exitDemo">結束</button></span>` : "";
 }
 $("#grouping").onclick = e => {
   const b = e.target.closest("[data-g]"); if (!b) return;
@@ -121,7 +121,7 @@ function renderShelf(reset = false) {
 function renderCaption(b) {
   if (!b) { $("#cap").innerHTML = ""; return; }
   const list = visible(), i = list.indexOf(b);
-  $("#cap").innerHTML = `<h2>${esc(b.title)}</h2><p>${esc(b.author || "")}${b.author ? "・" : ""}<b>${esc(b.dewey || (b.deweyMain != null ? pad3(b.deweyMain) : "—"))}</b> ${esc(deweyName(b.deweyMain))}・${i + 1} / ${list.length}</p>`;
+  $("#cap").innerHTML = `<h2>${esc(b.title)}</h2><p>${b.author ? `<span class="by">${esc(b.author)}・</span>` : ""}<b>${esc(b.dewey || (b.deweyMain != null ? pad3(b.deweyMain) : "—"))}</b> ${esc(deweyName(b.deweyMain))}・${i + 1} / ${list.length}</p>`;
 }
 $("#prev").onclick = () => flow.go(-1);
 $("#next").onclick = () => flow.go(1);

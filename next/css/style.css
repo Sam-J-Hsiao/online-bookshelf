@@ -218,7 +218,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .prog-side .seg button { flex: 1; padding: 0 6px; }
 
 .field {
-  width: 100%; min-height: 46px; border: 0; border-radius: var(--r-sm); background: var(--base); box-shadow: var(--inset-sm);
+  width: 100%; min-height: 46px; border: 0; border-radius: var(--r-sm); background: var(--base); box-shadow: var(--inset-sm); color: var(--ink); font-weight: 400;
   padding: 10px 16px; font-size: 16px; outline: none; transition: box-shadow .2s;
 }
 .field::placeholder { color: var(--faint); }
@@ -344,8 +344,12 @@ dialog.sheet[open] { animation: pop .32s cubic-bezier(.2, .9, .25, 1.15); }
   .toolbar .seg { width: 100%; }
   .toolbar .seg button { flex: 1; }
   .rail { flex-basis: 100%; }
-  .stage { border-radius: 28px; height: 340px; }
-  .flow { --cw: 150px; }
+  .stage { border-radius: 28px; height: 320px; }
+  .flow { --cw: 128px; }
+  .cover { padding: 14px 12px 14px 18px; }
+  .cover .t { font-size: 15px; }
+  .caption .by, .demo-pill .long { display: none; }
+  #demoBar { bottom: 12px; }
   .flow-nav { gap: 10px; margin-top: 20px; }
   .caption h2 { font-size: 19px; }
   .detail { padding: 26px 14px 60px; gap: 22px; }
