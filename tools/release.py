@@ -6,9 +6,22 @@
 - index.html 的 css/js 連結、每個 js 檔裡的相對 import，都改成 ...?v=版本號
 - 寫入 version.json，網站開啟時會比對；發現有新版就自動重新整理一次
 """
-import json, re, pathlib, datetime
+import json, re, pathlib, datetime, subprocess, sys
 
 root = pathlib.Path(__file__).resolve().parent.parent
+
+# 發布前先用 acorn 以 ES module 規則嚴格檢查語法（node --check 會漏掉部分錯誤）
+CHECK = r"""
+const a = require(process.env.ACORN || "acorn"), fs = require("fs"); let bad = 0;
+for (const f of process.argv.slice(1)) {
+  try { a.parse(fs.readFileSync(f, "utf8"), { ecmaVersion: "latest", sourceType: "module" }); }
+  catch (e) { console.error("語法錯誤", f, e.message); bad = 1; }
+}
+process.exit(bad);
+"""
+files = [str(p) for p in sorted((root / "js").glob("*.js"))]
+if subprocess.run(["node", "-e", CHECK, *files]).returncode:
+    sys.exit("發布中止：請先修正上面的語法錯誤")
 v = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d%H%M")
 
 def stamp(text):

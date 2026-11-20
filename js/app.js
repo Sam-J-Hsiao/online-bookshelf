@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201343";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201343";
-import { lookupIsbn, translateWord } from "./api.js?v=202611201343";
-import { createStore, demoStore } from "./store.js?v=202611201343";
-import { createFlow } from "./flow.js?v=202611201343";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201344";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201344";
+import { lookupIsbn, translateWord } from "./api.js?v=202611201344";
+import { createStore, demoStore } from "./store.js?v=202611201344";
+import { createFlow } from "./flow.js?v=202611201344";
 
-const APP_VERSION = "202611201343";
+const APP_VERSION = "202611201344";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -517,9 +517,9 @@ $("#mDelete").addEventListener("click", async () => {
   const ok = await confirmBox(`移除 ${n} 本書？`, `${names.slice(0, 3).map(t => `《${t}》`).join("、")}${n > 3 ? ` 等 ${n} 本` : ""}。這些書的閱讀筆記會一起刪除，無法復原；單字本裡的單字會保留。`, `移除 ${n} 本`);
   if (!ok) return;
   btn.disabled = true;
-  const ids = [...picked]; let ok = 0;
-  for (const id of ids) { try { await store.delBook(id); picked.delete(id); ok++; } catch (e) { console.error(e); } }
-  toast(ok === ids.length ? `已移除 ${ok} 本書` : `移除了 ${ok} 本，${ids.length - ok} 本失敗`, ok !== ids.length);
+  const ids = [...picked]; let done = 0;
+  for (const id of ids) { try { await store.delBook(id); picked.delete(id); done++; } catch (e) { console.error(e); } }
+  toast(done === ids.length ? `已移除 ${done} 本書` : `移除了 ${done} 本，${ids.length - done} 本失敗`, done !== ids.length);
   renderManage();
 });
 

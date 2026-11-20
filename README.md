@@ -30,6 +30,7 @@ Cover flow 由 `js/flow.js` 驅動：位置是連續值，觸控板水平滑動�
 每次修改後、推上 GitHub 前執行：
 
 ```bash
+npm i -g acorn   # 第一次需要，用來嚴格檢查語法
 python3 tools/release.py
 ```
 
