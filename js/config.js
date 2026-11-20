@@ -5,7 +5,14 @@
 
 // 1) Firebase：到 Firebase Console → 專案設定 → 你的應用程式 → 複製 firebaseConfig 貼在這裡。
 //    保持 null 時，網站會以「本機模式」運作：資料只存在目前這個瀏覽器。
-export const firebaseConfig = null;
+export const firebaseConfig = {
+  apiKey: "AIzaSyAJ14kSl_csoKOEqeBM9u5DhcODaejL0U0",
+  authDomain: "online-bookshelf-da80d.firebaseapp.com",
+  projectId: "online-bookshelf-da80d",
+  storageBucket: "online-bookshelf-da80d.firebasestorage.app",
+  messagingSenderId: "406245314322",
+  appId: "1:406245314322:web:a37bb825dbd317f3582dcb"
+};
 /* 範例：
 export const firebaseConfig = {
   apiKey: "AIza...",
