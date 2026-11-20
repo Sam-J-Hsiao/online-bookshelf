@@ -17,8 +17,8 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
   const measure = () => {
     const cw = parseFloat(getComputedStyle(el).getPropertyValue("--cw")) || el.clientWidth * .15;
     // 寬螢幕讓兩側的書攤得開一點，窄螢幕收緊
-    gap = cw * (el.clientWidth < 560 ? .72 : .86);
-    step = cw * (el.clientWidth < 560 ? .26 : .34);
+    gap = cw * (el.clientWidth < 560 ? .78 : .92);
+    step = cw * (el.clientWidth < 560 ? .3 : .42);
   };
 
   // 超出頭尾時給一點橡皮筋阻力
@@ -50,19 +50,23 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
     onFrame?.(n > 1 ? clamp(pos / (n - 1), 0, 1) : 0, pos);
   }
 
-  function loop() {
+  // 以時間為準的彈簧：60Hz、120Hz 或分頁在背景時速度都一致（每 1/120 秒積分一次）
+  let lastT = 0;
+  function loop(now) {
     raf = 0;
+    const dt = Math.min(64, lastT ? now - lastT : 16.7); lastT = now;
     if (mode === "spring") {
-      // 臨界阻尼附近的彈簧：快速收斂、只有極輕微的過衝
-      const k = .085, damp = .76;
-      vel = vel * damp + (target - pos) * k;
-      pos += vel;
+      const k = .03, damp = .76;                   // 約 3% 輕微回彈、0.3 秒內停穩
+      for (let t = 0; t < dt; t += 8.33) {
+        vel = vel * damp + (target - pos) * k;
+        pos += vel;
+      }
       if (Math.abs(target - pos) < .0008 && Math.abs(vel) < .0008) {
-        pos = target; vel = 0; mode = "idle"; layout(); settle(); return;
+        pos = target; vel = 0; mode = "idle"; lastT = 0; layout(); settle(); return;
       }
     }
     layout();
-    if (mode !== "idle") raf = requestAnimationFrame(loop);
+    if (mode !== "idle") raf = requestAnimationFrame(loop); else lastT = 0;
   }
   const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
 
@@ -71,9 +75,9 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
     if (idx !== settledIdx) { settledIdx = idx; onSettle?.(idx); }
   }
 
-  function springTo(i, v = vel) {
+  function springTo(i, v = vel, perFrame = true) {
     target = clamp(i, 0, Math.max(0, n - 1));
-    vel = v;
+    vel = perFrame ? v / 2 : v;
     if (reduce.matches) { pos = target; vel = 0; mode = "idle"; layout(); settle(); return; }
     mode = "spring"; kick();
   }
@@ -148,7 +152,7 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
     if (!(e.key in map)) return;
     e.preventDefault();
     const base = mode === "spring" ? target : Math.round(pos);
-    springTo(Number.isFinite(map[e.key]) ? base + map[e.key] : map[e.key] < 0 ? 0 : n - 1);
+    springTo(Number.isFinite(map[e.key]) ? base + map[e.key] : map[e.key] < 0 ? 0 : n - 1, vel, false);
   });
 
   const ro = new ResizeObserver(() => { measure(); layout(); });
@@ -167,7 +171,7 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
     },
     /** 只更新內容、不重排（例如進度改變） */
     update(fn) { items.forEach((nd, i) => fn(nd, i)); },
-    go(delta) { const base = mode === "spring" ? target : Math.round(pos); springTo(base + delta, 0); },
+    go(delta) { const base = mode === "spring" ? target : Math.round(pos); springTo(base + delta, vel, false); },
     goTo(i) { springTo(i, 0); },
     /** 滑桿用：0..1 的連續位置 */
     scrubTo(f, done) {

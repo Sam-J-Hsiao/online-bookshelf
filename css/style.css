@@ -126,7 +126,9 @@ svg { width: 20px; height: 20px; flex: none; }
 .chip em { font-style: normal; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
 .chip[aria-pressed="true"] { box-shadow: var(--inset-sm); color: var(--accent); }
 .chip[aria-pressed="true"] em { color: var(--accent); }
-.demo-pill { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; min-height: 36px; border-radius: 999px; box-shadow: var(--inset-sm); font-size: 13px; color: var(--mute); }
+#demoBar { position: absolute; z-index: 5; top: 16px; left: 50%; transform: translateX(-50%); }
+#demoBar:empty { display: none; }
+.demo-pill { white-space: nowrap; background: var(--base); display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; min-height: 36px; border-radius: 999px; box-shadow: var(--inset-sm); font-size: 13px; color: var(--mute); }
 .demo-pill .btn { min-height: 28px; padding: 0 12px; font-size: 13px; }
 
 .stage {
