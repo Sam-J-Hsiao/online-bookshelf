@@ -81,7 +81,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .btn.danger-solid:not(:disabled):hover { color: var(--danger); }
 .btn[data-sure], .btn.danger-solid[data-sure] {
   background: linear-gradient(145deg, #e0644a, var(--danger) 60%, #a8331d); color: #fff !important;
-  box-shadow: 0 8px 16px rgba(200, 68, 43, .32), var(--raise-sm); padding: 0 18px; animation: nudge .35s;
+  box-shadow: 0 8px 16px rgba(200, 68, 43, .32), var(--raise-sm); padding: 0 18px; animation: nudge .35s; transition: none;
 }
 @keyframes nudge { 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
 .btn:disabled, .btn-round:disabled { opacity: .45; cursor: not-allowed; }
