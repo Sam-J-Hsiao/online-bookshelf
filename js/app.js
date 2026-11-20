@@ -51,12 +51,13 @@ function renderFlow() {
   const list = visible(), f = $("#flow");
   if (store?.mode === "cloud" && !S.auth?.user) {
     f.innerHTML = `<div class="empty"><p>登入後就能看到你自己的書櫃。<br>每個人的書、筆記和單字都分開儲存。</p><div><button class="pri" data-act="signin">以 Google 帳號登入</button></div></div>`;
-    $("#cap").innerHTML = ""; return;
+    $("#cap").innerHTML = ""; $(".ctrl").classList.add("hide"); return;
   }
   if (!list.length) {
     f.innerHTML = `<div class="empty"><p>${S.books.length ? "這個分類還沒有書。" : "書櫃還是空的。"}</p>${S.books.length ? "" : '<div><button class="pri" data-act="add">新增第一本書</button></div>'}</div>`;
-    $("#cap").innerHTML = ""; return;
+    $("#cap").innerHTML = ""; $(".ctrl").classList.add("hide"); return;
   }
+  $(".ctrl").classList.remove("hide");
   S.sel = Math.max(0, Math.min(S.sel, list.length - 1));
   const cs = getComputedStyle(document.documentElement);
   const gap = parseFloat(cs.getPropertyValue("--gap")), step = parseFloat(cs.getPropertyValue("--step"));
@@ -122,11 +123,12 @@ function renderDetail() {
     ${b.lang === "en" ? `
     <h3 style="margin-top:24px">查生詞</h3>
     <div class="row"><div><label for="wIn">不會的英文單字或片語</label><input id="wIn" autocomplete="off" autocapitalize="off" placeholder="e.g. serendipity"></div><button class="pri" data-act="word">翻譯並加入單字本</button></div>
-    <p class="hint" id="wMsg">英文釋義：Free Dictionary API；中文翻譯：MyMemory。</p>
+    <p class="hint" id="wMsg">${esc(S.wordMsg?.bookId === b.id ? S.wordMsg.text : "英文釋義：Free Dictionary API；中文翻譯：MyMemory。")}</p>
     <div id="wResult"></div>
     <p class="hint">這本書已收集 ${ws.length} 個生詞${ws.length ? "，可以到「單字本」複習" : ""}。</p>`
     : '<p class="hint" style="margin-top:20px">把語言設成「英文」，這裡就會出現查生詞的欄位。</p>'}
    </div></div>`;
+  if (S.wordMsg?.bookId === b.id && S.wordMsg.word) showWord(S.wordMsg.word);
   $("#wIn")?.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); lookupWord(b); } });
 }
 
@@ -237,9 +239,9 @@ async function lookupWord(b) {
     const r = await translateWord(w);
     if (!r) { msg.textContent = "查不到這個字，請檢查拼字。"; return; }
     const doc = { ...r, bookId: b.id, at: new Date().toISOString(), score: 0 };
+    S.wordMsg = { bookId: b.id, word: doc, text: r.zh ? "已加入單字本。" : "已加入單字本（中文翻譯暫時查不到）。" };
+    inp.value = ""; msg.textContent = S.wordMsg.text; showWord(doc);
     await store.putWord("w_" + uid(), doc);
-    inp.value = ""; msg.textContent = r.zh ? "已加入單字本。" : "已加入單字本（中文翻譯暫時查不到）。";
-    showWord(doc);
   } catch (e) { console.error(e); msg.textContent = "查詢失敗，請確認網路後再試一次。"; }
 }
 const showWord = w => {

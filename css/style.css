@@ -25,7 +25,7 @@ nav button[aria-current=true]{background:#1d4a40;color:#fff}
 .hero{background:radial-gradient(ellipse at 50% 30%,#1a5246 0,var(--hero) 45%,var(--hero2) 100%);color:#eef0ea;padding:14px max(5vw,16px) 26px}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;max-width:1240px;margin:0 auto}
 .chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
-.chip{min-height:36px;padding:0 12px;border-radius:99px;background:#1d4a40;color:#cfe0d9;font-size:14px}
+.chip{min-height:36px;white-space:nowrap;padding:0 12px;border-radius:99px;background:#1d4a40;color:#cfe0d9;font-size:14px}
 .chip[aria-pressed=true]{background:var(--gold);color:#1d1503}
 .seg{display:flex;background:#0a2a24;border-radius:99px;padding:3px}
 .seg button{min-height:34px;border-radius:99px;background:transparent;color:#cfe0d9;font-size:14px}
