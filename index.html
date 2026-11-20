@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>我的線上書櫃</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<header>
+  <h1>我的線上書櫃</h1>
+  <nav><button id="tShelf" aria-current="true">書櫃</button><button id="tWords" aria-current="false">單字本</button></nav>
+  <div id="who"></div>
+  <button class="pri" id="addBtn">＋ 新增書籍</button>
+  <div id="status">載入中…</div>
+</header>
+
+<main id="vShelf">
+  <section class="hero">
+    <div class="bar">
+      <div class="seg" role="group" aria-label="分類方式">
+        <button id="gDewey" aria-pressed="true">杜威分類</button>
+        <button id="gMine" aria-pressed="false">我的分類</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="flow" id="flow" tabindex="0" aria-label="書架，可用左右鍵翻動"></div>
+    <div class="ctrl"><button id="prev" aria-label="上一本">‹</button><div id="cap"></div><button id="next" aria-label="下一本">›</button></div>
+  </section>
+  <section class="band"><div class="wrap" id="detail"></div></section>
+</main>
+
+<main id="vWords" class="hide"><section class="band"><div class="wrap">
+  <div class="card">
+    <div class="row" style="align-items:center;margin-bottom:10px">
+      <h2 style="flex:1 1 auto">單字本</h2>
+      <select id="wFilter" style="flex:0 1 220px" aria-label="依書籍篩選"></select>
+      <button class="pri" id="reviewBtn">開始複習</button>
+    </div>
+    <p class="hint" id="wCount"></p>
+    <table class="stack"><thead><tr><th>單字</th><th>中文</th><th>英文釋義與例句</th><th>出處</th><th>熟練度</th><th></th></tr></thead><tbody id="wBody"></tbody></table>
+  </div>
+</div></section></main>
+
+<dialog id="dAdd"><form id="fAdd">
+  <h2>新增書籍</h2>
+  <div class="row">
+    <div><label for="fIsbn">ISBN</label><input id="fIsbn" inputmode="numeric" placeholder="輸入 ISBN 後按查詢" autocomplete="off"></div>
+    <button type="button" id="lookup" class="ghost">查詢書籍資料</button>
+  </div>
+  <p class="hint" id="isbnMsg">資料來源：Google Books、Open Library。查不到也可以手動填寫。</p>
+  <div><label for="fTitle">書名 *</label><input id="fTitle" required></div>
+  <div class="row">
+    <div><label for="fAuthor">作者</label><input id="fAuthor"></div>
+    <div style="flex:0 1 120px"><label for="fPages">總頁數</label><input id="fPages" type="number" min="1" inputmode="numeric"></div>
+  </div>
+  <div class="row">
+    <div style="flex:0 1 130px"><label for="fDewey">杜威號碼</label><input id="fDewey" placeholder="例如 158.1" inputmode="decimal"></div>
+    <div><label for="fMain">杜威大類</label><select id="fMain"></select></div>
+  </div>
+  <div class="row">
+    <div style="flex:0 1 130px"><label for="fLang">語言</label><select id="fLang"><option value="zh">中文</option><option value="en">英文</option><option value="ja">日文</option><option value="other">其他</option></select></div>
+    <div><label for="fShelf">我的分類</label><input id="fShelf" list="shelfList" placeholder="例如：課堂指定、睡前讀物"><datalist id="shelfList"></datalist></div>
+  </div>
+  <input type="hidden" id="fCover">
+  <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" id="cancelAdd">取消</button><button class="pri" type="submit">放上書櫃</button></div>
+</form></dialog>
+
+<dialog id="dRev"><form method="dialog" id="fRev"></form></dialog>
+</body>
+</html>
