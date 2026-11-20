@@ -4,7 +4,7 @@
 
 ## 功能
 
-- **匯入書籍**：輸入 ISBN（10 或 13 碼），從 Google Books 取得書名、作者、頁數、封面，從 Open Library 取得杜威號碼。查不到也能手動輸入。
+- **匯入書籍**：輸入 ISBN（10 或 13 碼），從 Open Library 取得書名（該版本語言，例如中文譯名）、作者、頁數、封面與杜威號碼；設定 Google Books 金鑰後會優先使用 Google Books 的書目資料。查不到也能手動輸入。
 - **分類**：依杜威十大類（000–900）分類；沒有正式號碼時，會依 Google Books 的類別推測大類，並標示「推測」。也可以用自訂的「我的分類」。
 - **書架**：3D cover flow，可以用左右鍵、滾輪、滑動或點擊翻書，書封下方有閱讀進度條。
 - **閱讀進度與筆記**：記錄頁數、閱讀狀態，筆記可附頁碼。
@@ -51,7 +51,7 @@ python3 -m http.server 8000
 
 ## 之後接 Google API
 
-- **Google Books API 金鑰**：在 Google Cloud Console 建立 API 金鑰，限制只能用於 Books API 和你的網域，填入 `js/config.js` 的 `googleBooksApiKey`，可提高查詢額度。
+- **Google Books API 金鑰（建議盡快設定）**：實測不帶金鑰時 Google Books 會直接拒絕（匿名額度為 0），所以目前程式沒有金鑰就只用 Open Library。在 Google Cloud Console 建立 API 金鑰，限制只能用於 Books API 和你的網域，填入 `js/config.js` 的 `googleBooksApiKey`，可提高查詢額度。
 - **Google Cloud Translation**：把 `js/config.js` 的 `translation.provider` 改成 `"google"` 並填入金鑰。注意：這組金鑰會出現在前端，正式上線前建議改成透過後端（例如 Firebase Cloud Functions）代為呼叫，避免被盜用而產生費用。
 
 ## 資料結構（Firestore）

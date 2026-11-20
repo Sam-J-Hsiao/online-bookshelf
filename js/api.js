@@ -11,12 +11,14 @@ const https = u => (u ? u.replace(/^http:/, "https:").replace("&edge=curl", "") 
 const normLang = l => (!l ? "other" : l.startsWith("zh") ? "zh" : l.startsWith("en") ? "en" : l.startsWith("ja") ? "ja" : "other");
 
 async function googleBooks(isbn) {
-  const key = googleBooksApiKey ? `&key=${encodeURIComponent(googleBooksApiKey)}` : "";
-  const j = await getJson(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${key}`);
+  // 實測：不帶金鑰時 Google Books 會直接回 429（匿名額度為 0），所以沒有金鑰就不呼叫
+  if (!googleBooksApiKey) return null;
+  const j = await getJson(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${encodeURIComponent(googleBooksApiKey)}`);
   const v = j.items?.[0]?.volumeInfo;
   if (!v) return null;
   return {
-    title: v.subtitle ? `${v.title}：${v.subtitle}` : v.title,
+    title: v.title,
+    subtitle: v.subtitle || "",
     author: (v.authors || []).join("、"),
     pages: v.pageCount || null,
     lang: normLang(v.language),
@@ -27,21 +29,41 @@ async function googleBooks(isbn) {
   };
 }
 
+const OL_LANG = { eng: "en", chi: "zh", zho: "zh", jpn: "ja" };
+
+/** 從各版本的 DDC 清單挑一個：先取多數決的大類，再取該大類中第一個號碼（"[Fic]"、"j823" 這類會被略過或清理） */
+export function pickDewey(list = []) {
+  const parsed = list.map(s => parseDewey(String(s).replace(/^[a-z]+/i, ""))).filter(Boolean);
+  if (!parsed.length) return null;
+  const count = {};
+  parsed.forEach(p => (count[p.main] = (count[p.main] || 0) + 1));
+  const main = +Object.entries(count).sort((a, b) => b[1] - a[1])[0][0];
+  return parsed.find(p => p.main === main);
+}
+
 async function openLibrary(isbn) {
-  const j = await getJson(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-  const d = j[`ISBN:${isbn}`];
-  let dewey = d?.classifications?.dewey_decimal_class?.[0];
-  if (!dewey) {
-    // 部分書目只在 edition 資料裡有 DDC
-    try { dewey = (await getJson(`https://openlibrary.org/isbn/${isbn}.json`)).dewey_decimal_class?.[0]; } catch { /* 沒有就算了 */ }
-  }
-  if (!d && !dewey) return null;
+  // search.json：作品層級，彙整所有版本的 DDC、作者、封面（實測台灣出版品也常有 DDC）
+  // isbn/{isbn}.json：這個版本本身，書名是該版本的語言（例如中文譯名）
+  const [s, e] = await Promise.allSettled([
+    getJson(`https://openlibrary.org/search.json?isbn=${isbn}&fields=title,author_name,ddc,number_of_pages_median,cover_i,subject&limit=1`),
+    getJson(`https://openlibrary.org/isbn/${isbn}.json`)
+  ]);
+  const w = s.status === "fulfilled" ? s.value.docs?.[0] : null;
+  const ed = e.status === "fulfilled" ? e.value : null;
+  if (!w && !ed) return null;
+  const coverId = ed?.covers?.find(c => c > 0) || w?.cover_i;
+  const lang = ed?.languages?.[0]?.key?.split("/").pop();
   return {
-    title: d?.title || "",
-    author: (d?.authors || []).map(a => a.name).join("、"),
-    pages: d?.number_of_pages || null,
-    cover: d?.cover?.large || d?.cover?.medium || "",
-    dewey
+    title: ed?.title || w?.title || "",
+    subtitle: ed?.subtitle || "",
+    author: (w?.author_name || []).join("、"),
+    pages: ed?.number_of_pages || w?.number_of_pages_median || null,
+    lang: OL_LANG[lang] || (lang ? "other" : ""),
+    cover: coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : "",
+    publisher: ed?.publishers?.[0] || "",
+    published: ed?.publish_date || "",
+    dewey: pickDewey(w?.ddc),
+    subjects: w?.subject || []
   };
 }
 
@@ -51,19 +73,20 @@ export async function lookupIsbn(isbn) {
   const G = g.status === "fulfilled" ? g.value : null;
   const O = o.status === "fulfilled" ? o.value : null;
   if (!G && !O) {
-    if (g.status === "rejected" && o.status === "rejected") throw new Error("network");
+    if (o.status === "rejected") throw new Error("network");
     return null;
   }
-  const dd = parseDewey(O?.dewey);
-  const guess = dd ? null : guessDewey(G?.categories);
+  const dd = O?.dewey || null;
+  const guess = dd ? null : guessDewey([...(G?.categories || []), ...(O?.subjects || [])]);
   return {
     title: G?.title || O?.title || "",
+    subtitle: G?.subtitle || O?.subtitle || "",
     author: G?.author || O?.author || "",
     pages: G?.pages || O?.pages || null,
-    lang: G?.lang || "other",
+    lang: G?.lang || O?.lang || "other",
     cover: G?.cover || O?.cover || `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
-    publisher: G?.publisher || "",
-    published: G?.published || "",
+    publisher: G?.publisher || O?.publisher || "",
+    published: G?.published || O?.published || "",
     dewey: dd?.number || "",
     deweyMain: dd ? dd.main : guess,
     deweyGuessed: !dd && guess != null

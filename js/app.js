@@ -89,7 +89,7 @@ function renderDetail() {
   const ws = S.words.filter(w => w.bookId === b.id);
   el.innerHTML = `<div class="grid">
    <div class="card">
-    <h2>${esc(b.title)}</h2>
+    <h2>${esc(b.title)}</h2>${b.subtitle ? `<p class="hint" style="margin:0 0 6px">${esc(b.subtitle)}</p>` : ""}
     <div class="meta"><span>${esc(b.author || "作者未填")}</span><span>ISBN ${fmtIsbn(b.isbn)}</span>${b.isbn ? `<span>${esc(isbnRegion(b.isbn))}出版</span>` : ""}${b.publisher ? `<span>${esc(b.publisher)} ${esc((b.published || "").slice(0, 4))}</span>` : ""}</div>
     <h3>閱讀進度</h3>
     <div class="prog"><i style="width:${pct(b)}%"></i></div>
@@ -250,7 +250,7 @@ const showWord = w => {
 /* ───────── 新增書籍 ───────── */
 const dAdd = $("#dAdd");
 $("#fMain").innerHTML = mainOptions(null);
-function openAdd() { if (!canWrite()) return; $("#fAdd").reset(); $("#fCover").value = ""; $("#isbnMsg").textContent = "資料來源：Google Books、Open Library。查不到也可以手動填寫。"; dAdd.showModal(); }
+function openAdd() { if (!canWrite()) return; $("#fAdd").reset(); $("#fCover").value = ""; $("#fCover").dataset.subtitle = ""; $("#isbnMsg").textContent = "資料來源：Google Books、Open Library。查不到也可以手動填寫。"; dAdd.showModal(); }
 $("#addBtn").onclick = openAdd;
 $("#cancelAdd").onclick = () => dAdd.close();
 $("#fIsbn").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("#lookup").click(); } });
@@ -268,7 +268,7 @@ $("#lookup").onclick = async () => {
     if (!r) { msg.textContent = "Google Books 和 Open Library 都查不到這本書，請手動填寫。"; return; }
     $("#fTitle").value = r.title; $("#fAuthor").value = r.author;
     if (r.pages) $("#fPages").value = r.pages;
-    $("#fLang").value = r.lang; $("#fCover").value = r.cover;
+    $("#fLang").value = r.lang; $("#fCover").value = r.cover; $("#fCover").dataset.subtitle = r.subtitle || "";
     $("#fDewey").value = r.dewey; $("#fMain").value = r.deweyMain ?? "";
     msg.textContent = r.dewey ? `已帶入資料，杜威號碼 ${r.dewey}（來自 Open Library）。`
       : r.deweyMain != null ? "已帶入資料。查不到正式的杜威號碼，大類是依書籍類別推測的，請確認。"
@@ -289,7 +289,7 @@ $("#fAdd").onsubmit = async e => {
   const guessed = !dd && main != null && !$("#fMain").dataset.touched && /推測/.test(msg.textContent);
   const doc = {
     title, author: $("#fAuthor").value.trim(), isbn: n, pages: +$("#fPages").value || null,
-    lang: $("#fLang").value, shelf: $("#fShelf").value.trim(), cover: $("#fCover").value,
+    lang: $("#fLang").value, shelf: $("#fShelf").value.trim(), cover: $("#fCover").value, subtitle: $("#fCover").dataset.subtitle || "",
     dewey: dd?.number || "", deweyMain: main, deweyGuessed: guessed,
     current: 0, status: "want", notes: [], addedAt: today()
   };
