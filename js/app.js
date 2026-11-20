@@ -472,9 +472,8 @@ $("#nSearch").addEventListener("input", renderNotes);
 
 /* ───────── 書籍管理：勾選後批次移除 ───────── */
 const picked = new Set();
-function renderManage() {
-  [...picked].forEach(id => { if (!book(id)) picked.delete(id); });
-  const list = S.books.slice().sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || "") || a.title.localeCompare(b.title, "zh-Hant"));
+function manageBar() {
+  const list = S.books;
   $("#mCount").textContent = list.length ? `共 ${list.length} 本${picked.size ? `・已選 ${picked.size} 本` : ""}` : "";
   const all = $("#mAll");
   all.checked = list.length > 0 && picked.size === list.length;
@@ -484,6 +483,11 @@ function renderManage() {
   del.disabled = !picked.size;
   if (!picked.size) resetSure(del, "移除");
   else if (!del.dataset.sure) del.textContent = `移除 ${picked.size} 本`;
+}
+function renderManage() {
+  [...picked].forEach(id => { if (!book(id)) picked.delete(id); });
+  const list = S.books.slice().sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || "") || a.title.localeCompare(b.title, "zh-Hant"));
+  manageBar();
   if (gated()) { $("#mList").innerHTML = `<li class="empty-box"><b>登入後就能管理你的書</b></li>`; return; }
   $("#mList").innerHTML = list.map(b => `
     <li><label class="mrow">
@@ -496,11 +500,12 @@ function renderManage() {
 $("#mList").addEventListener("change", e => {
   const id = e.target.dataset.pick; if (!id) return;
   e.target.checked ? picked.add(id) : picked.delete(id);
-  renderManage();
+  manageBar();
 });
 $("#mAll").addEventListener("change", e => {
   if (e.target.checked) S.books.forEach(b => picked.add(b.id)); else picked.clear();
-  renderManage();
+  document.querySelectorAll("#mList [data-pick]").forEach(i => { i.checked = picked.has(i.dataset.pick); });
+  manageBar();
 });
 $("#mDelete").addEventListener("click", async () => {
   const btn = $("#mDelete"), n = picked.size; if (!n) return;
