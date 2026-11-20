@@ -23,6 +23,10 @@
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h9.5a3 3 0 013 3V20H8a3 3 0 01-3-3V4.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a3 3 0 013-3h9.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M6 4h12v16H6z M9 9h6M9 13h6M9 17h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M14 5h4v14h-4M10 8l-4 4 4 4M6 12h10" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 19.5c1.4-3.2 4-4.8 7-4.8s5.6 1.6 7 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
 
@@ -33,6 +37,7 @@
   </a>
   <nav class="seg" aria-label="切換頁面">
     <button data-view="shelf" aria-pressed="true">書櫃</button>
+    <button data-view="notes" aria-pressed="false">筆記</button>
     <button data-view="words" aria-pressed="false">單字本</button>
   </nav>
   <div class="top-actions">
@@ -65,6 +70,29 @@
   </section>
 
   <section class="detail" id="detail"></section>
+</main>
+
+<main id="vNotes" hidden>
+  <section class="page">
+    <div class="page-head">
+      <div><h1 class="serif">閱讀筆記</h1><p class="muted" id="nCount"></p></div>
+      <label class="search"><svg><use href="#i-search"/></svg><input id="nSearch" type="search" placeholder="搜尋筆記內容或書名" aria-label="搜尋筆記" autocomplete="off"></label>
+    </div>
+    <div id="nList"></div>
+  </section>
+</main>
+
+<main id="vManage" hidden>
+  <section class="page">
+    <div class="page-head">
+      <div><h1 class="serif">書籍管理</h1><p class="muted" id="mCount"></p></div>
+      <div class="page-actions">
+        <label class="check-all"><input type="checkbox" id="mAll"><i class="box" aria-hidden="true"></i>全選</label>
+        <button class="btn danger-solid" id="mDelete" disabled>移除</button>
+      </div>
+    </div>
+    <ul class="manage-list" id="mList"></ul>
+  </section>
 </main>
 
 <main id="vWords" hidden>

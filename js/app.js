@@ -423,19 +423,110 @@ $("#fBook").addEventListener("submit", async e => {
 function renderWho() {
   const w = $("#who"), a = S.auth;
   $("#addBtn").disabled = !canWrite();
-  if (!a || a.mode !== "cloud" || !a.user) { w.innerHTML = ""; return; }
-  const u = a.user, initial = (u.name || u.email || "?").trim()[0];
-  w.innerHTML = `<button class="avatar" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="帳號選單">${u.photo ? `<img src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">` : `<span>${esc(initial)}</span>`}</button>
-    <div class="menu" id="menu" hidden><p><b>${esc(u.name || "")}</b>${esc(u.email || "")}</p><button class="btn btn-sm" data-act="signout">登出</button></div>`;
+  if (!a || gated()) { w.innerHTML = ""; return; }
+  const u = a.mode === "cloud" ? a.user : null;
+  const face = u?.photo ? `<img src="${esc(u.photo)}" alt="" referrerpolicy="no-referrer">`
+    : u ? `<span>${esc((u.name || u.email || "?").trim()[0])}</span>` : `<span class="guest">${icon("user")}</span>`;
+  const id = u ? `<div class="menu-id"><b title="${esc(u.name || "")}">${esc(u.name || "")}</b><span title="${esc(u.email || "")}">${esc(u.email || "")}</span></div>`
+    : `<div class="menu-id"><b>${a.mode === "demo" ? "範例模式" : "本機模式"}</b><span>資料只存在這台裝置</span></div>`;
+  w.innerHTML = `<button class="avatar" data-act="menu" aria-haspopup="true" aria-expanded="false" aria-label="帳號選單">${face}</button>
+    <div class="menu" id="menu" hidden>${id}
+      <button class="btn" data-view="manage">${icon("gear")}書籍管理</button>
+      <button class="btn" data-view="notes">${icon("note")}閱讀筆記</button>
+      ${u ? `<button class="btn" data-act="signout">${icon("out")}登出</button>` : a.mode === "demo" ? `<button class="btn" data-act="exitDemo">${icon("out")}結束範例模式</button>` : ""}
+    </div>`;
 }
+
+/* ───────── 縮圖（筆記總覽、書籍管理共用） ───────── */
+function thumb(b) {
+  const [c1, c2, fg] = pal(b.title);
+  return `<span class="thumb" style="background:linear-gradient(150deg,${c1},${c2});color:${fg}"><span>${esc(b.title.slice(0, 8))}</span>${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>`;
+}
+
+/* ───────── 筆記總覽：依書籍分組 ───────── */
+function renderNotes() {
+  const q = ($("#nSearch").value || "").trim().toLowerCase();
+  const hl = t => { const e = esc(t); if (!q) return e; const qe = esc(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); return e.replace(new RegExp(qe, "gi"), m => `<mark>${m}</mark>`); };
+  const groups = S.books.map(b => {
+    const hitTitle = q && (b.title.toLowerCase().includes(q) || (b.author || "").toLowerCase().includes(q));
+    const notes = (b.notes || []).filter(n => !q || hitTitle || n.text.toLowerCase().includes(q));
+    const last = (b.notes || []).reduce((m, n) => (n.at > m ? n.at : m), "");
+    return { b, notes, last };
+  }).filter(g => g.notes.length).sort((x, y) => y.last.localeCompare(x.last));
+  const total = S.books.reduce((n, b) => n + (b.notes || []).length, 0);
+  $("#nCount").textContent = total ? `${total} 則筆記・${S.books.filter(b => (b.notes || []).length).length} 本書` : "";
+  if (gated()) { $("#nList").innerHTML = `<div class="empty-box"><b>登入後就能看到你的筆記</b></div>`; return; }
+  $("#nList").innerHTML = groups.map(({ b, notes }) => `
+    <article class="nbook">
+      <header class="nbook-head">${thumb(b)}
+        <div class="tt"><h2>${hl(b.title)}</h2><p>${hl(b.author || "")}${b.author ? "・" : ""}${(b.notes || []).length} 則筆記</p></div>
+        <button class="btn btn-sm" data-open="${b.id}">寫筆記</button>
+      </header>
+      <ul class="notes">${notes.slice().sort((x, y) => (+y.page || 0) - (+x.page || 0) || y.at.localeCompare(x.at)).map(n => `
+        <li class="note"><header>${n.page ? `<span class="pg">p.${esc(n.page)}</span>` : ""}<span>${esc(n.at)}</span></header><p>${hl(n.text)}</p>
+        <button class="btn-round icon-btn del" data-del-note="${n.id}" data-note-book="${b.id}" aria-label="刪除這則筆記">${icon("x")}</button></li>`).join("")}</ul>
+    </article>`).join("")
+    || (q ? `<div class="empty-box"><b>找不到符合「${esc(q)}」的筆記</b></div>` : `<div class="empty-box"><b>還沒有筆記</b>在書櫃點一本書，就可以開始寫。</div>`);
+}
+$("#nSearch").addEventListener("input", renderNotes);
+
+/* ───────── 書籍管理：勾選後批次移除 ───────── */
+const picked = new Set();
+function renderManage() {
+  [...picked].forEach(id => { if (!book(id)) picked.delete(id); });
+  const list = S.books.slice().sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || "") || a.title.localeCompare(b.title, "zh-Hant"));
+  $("#mCount").textContent = list.length ? `共 ${list.length} 本${picked.size ? `・已選 ${picked.size} 本` : ""}` : "";
+  const all = $("#mAll");
+  all.checked = list.length > 0 && picked.size === list.length;
+  all.indeterminate = picked.size > 0 && picked.size < list.length;
+  all.disabled = !list.length;
+  const del = $("#mDelete");
+  del.disabled = !picked.size;
+  if (!picked.size) resetSure(del, "移除");
+  else if (!del.dataset.sure) del.textContent = `移除 ${picked.size} 本`;
+  if (gated()) { $("#mList").innerHTML = `<li class="empty-box"><b>登入後就能管理你的書</b></li>`; return; }
+  $("#mList").innerHTML = list.map(b => `
+    <li><label class="mrow">
+      <input type="checkbox" data-pick="${b.id}" ${picked.has(b.id) ? "checked" : ""}><i class="box" aria-hidden="true"></i>
+      ${thumb(b)}
+      <span class="info"><b>${esc(b.title)}</b><span>${esc(b.author || "作者未填")}・${esc(b.dewey || (b.deweyMain != null ? pad3(b.deweyMain) : "未分類"))} ${esc(deweyName(b.deweyMain))}</span></span>
+      <span class="stat"><b>${b.pages ? pct(b) + "%" : "—"}</b><span>${(b.notes || []).length} 則筆記</span></span>
+    </label></li>`).join("") || `<li class="empty-box"><b>書櫃是空的</b></li>`;
+}
+$("#mList").addEventListener("change", e => {
+  const id = e.target.dataset.pick; if (!id) return;
+  e.target.checked ? picked.add(id) : picked.delete(id);
+  renderManage();
+});
+$("#mAll").addEventListener("change", e => {
+  if (e.target.checked) S.books.forEach(b => picked.add(b.id)); else picked.clear();
+  renderManage();
+});
+$("#mDelete").addEventListener("click", async () => {
+  const btn = $("#mDelete"), n = picked.size; if (!n) return;
+  if (!btn.dataset.sure) { armSure(btn, `確定移除 ${n} 本？筆記會一起刪除`, `移除 ${n} 本`); return; }
+  resetSure(btn, "移除"); btn.disabled = true;
+  const ids = [...picked]; let ok = 0;
+  for (const id of ids) { try { await store.delBook(id); picked.delete(id); ok++; } catch (e) { console.error(e); } }
+  toast(ok === ids.length ? `已移除 ${ok} 本書` : `移除了 ${ok} 本，${ids.length - ok} 本失敗`, ok !== ids.length);
+  renderManage();
+});
+
+// 兩段式確認：第一下變紅色並改字，4 秒內再按才執行
+function armSure(btn, text, back) {
+  btn.dataset.sure = "1"; btn.dataset.back = back; btn.textContent = text;
+  clearTimeout(btn._t); btn._t = setTimeout(() => resetSure(btn, back), 4000);
+}
+function resetSure(btn, text) { clearTimeout(btn._t); delete btn.dataset.sure; btn.textContent = btn.dataset.back && btn.id !== "mDelete" ? btn.dataset.back : text; }
 
 /* ───────── 全域點擊 ───────── */
 document.addEventListener("click", async e => {
   const menu = $("#menu");
   if (menu && !menu.hidden && !e.target.closest("#who")) menu.hidden = true;
-  const t = e.target.closest("[data-act],[data-del-note],[data-del-word],[data-step],[data-status],[data-audio],[data-view]");
+  const t = e.target.closest("[data-act],[data-del-note],[data-del-word],[data-step],[data-status],[data-audio],[data-view],[data-open]");
   if (!t) return;
-  if (t.dataset.view) return setView(t.dataset.view);
+  if (t.dataset.view) { if (menu) menu.hidden = true; return setView(t.dataset.view); }
+  if (t.dataset.open) return openInShelf(t.dataset.open);
   if (t.dataset.audio) { try { await new Audio(t.dataset.audio).play(); } catch { toast("無法播放發音", true); } return; }
   const act = t.dataset.act;
   if (act === "menu") { const m = $("#menu"); m.hidden = !m.hidden; t.setAttribute("aria-expanded", String(!m.hidden)); return; }
@@ -447,11 +538,11 @@ document.addEventListener("click", async e => {
   if (act === "closeBook") return dBook.close();
   if (act === "toWords") return setView("words");
   if (t.dataset.delWord) return save(() => store.delWord(t.dataset.delWord), "已刪除");
-  const b = book(S.selId); if (!b) return;
+  const b = book(t.dataset.noteBook || S.selId); if (!b) return;
   if (act === "edit") return openBook(b);
   if (act === "delBook") {
-    if (!t.dataset.sure) { t.dataset.sure = "1"; t.textContent = "確定移除？筆記會一起刪除"; return; }
-    dBook.close(); return save(() => store.delBook(b.id), "已移除");
+    if (!t.dataset.sure) { armSure(t, "確定移除？再按一次", "移除這本書"); return; }
+    dBook.close(); return save(() => store.delBook(b.id), `已移除《${b.title}》`);
   }
   if (t.dataset.step) return queueProgress(b.id, (progVal ?? b.current ?? 0) + +t.dataset.step);
   if (t.dataset.status) return save(() => store.putBook(b.id, strip({ ...b, status: t.dataset.status })));
@@ -475,13 +566,22 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { const m = 
 
 function setView(v) {
   S.view = v;
-  $("#vShelf").hidden = v !== "shelf"; $("#vWords").hidden = v !== "words";
-  document.querySelectorAll(".top [data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+  for (const [k, id] of [["shelf", "vShelf"], ["notes", "vNotes"], ["words", "vWords"], ["manage", "vManage"]]) $("#" + id).hidden = v !== k;
+  document.querySelectorAll(".top .seg [data-view]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+  if (v === "manage") { picked.clear(); renderManage(); }
+  if (v === "notes") renderNotes();
   scrollTo({ top: 0 });
 }
 
+// 從筆記總覽回到書櫃的那本書，並捲到筆記區
+function openInShelf(id) {
+  if (!visible().some(b => b.id === id)) { S.filter = "all"; renderToolbar(); }
+  S.selId = id; setView("shelf"); renderShelf(true);
+  requestAnimationFrame(() => { jumpPending = true; jumpToWork(); setTimeout(() => $("#nText")?.focus({ preventScroll: true }), 450); });
+}
+
 /* ───────── 啟動 ───────── */
-function render(reset) { renderWho(); renderToolbar(); renderShelf(reset); renderWords(); }
+function render(reset) { renderWho(); renderToolbar(); renderShelf(reset); renderWords(); if (S.view === "notes") renderNotes(); if (S.view === "manage") renderManage(); }
 const onData = (books, words) => {
   if (!progT || document.activeElement?.id !== "cur") progVal = null;
   S.books = books.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b)) || a.title.localeCompare(b.title, "zh-Hant"));

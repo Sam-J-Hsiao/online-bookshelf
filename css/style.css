@@ -76,7 +76,14 @@ svg { width: 20px; height: 20px; flex: none; }
 .btn.accent:active, .btn-round.accent:active { box-shadow: inset 3px 3px 7px rgba(150, 50, 10, .45), inset -2px -2px 5px rgba(255, 190, 160, .4); }
 .btn.ghost { box-shadow: none; background: transparent; color: var(--mute); padding: 0 12px; }
 .btn.ghost:hover { color: var(--ink); }
-.btn.danger { color: var(--danger); }
+.btn.danger, .btn.ghost.danger, .btn.ghost.danger:hover { color: var(--danger); }
+.btn.danger-solid { color: var(--danger); }
+.btn.danger-solid:not(:disabled):hover { color: var(--danger); }
+.btn[data-sure], .btn.danger-solid[data-sure] {
+  background: linear-gradient(145deg, #e0644a, var(--danger) 60%, #a8331d); color: #fff !important;
+  box-shadow: 0 8px 16px rgba(200, 68, 43, .32), var(--raise-sm); padding: 0 18px; animation: nudge .35s;
+}
+@keyframes nudge { 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
 .btn:disabled, .btn-round:disabled { opacity: .45; cursor: not-allowed; }
 .btn-sm { min-height: 36px; padding: 0 14px; font-size: 14px; }
 .icon-btn { width: 36px; height: 36px; }
@@ -106,12 +113,18 @@ svg { width: 20px; height: 20px; flex: none; }
 .avatar { width: 44px; height: 44px; border-radius: 50%; border: 0; padding: 4px; cursor: pointer; background: var(--base); box-shadow: var(--raise-sm); }
 .avatar img, .avatar span { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; object-fit: cover; font-weight: 700; color: var(--accent); }
 .menu {
-  position: absolute; right: 0; top: calc(100% + 12px); min-width: 210px; padding: 10px; border-radius: var(--r-md);
-  background: var(--base); box-shadow: var(--raise); display: grid; gap: 4px;
+  position: absolute; right: 0; top: calc(100% + 12px); width: 260px; max-width: calc(100vw - 28px); padding: 10px; border-radius: var(--r-md);
+  background: var(--base); box-shadow: var(--raise); display: grid; gap: 2px; z-index: 40;
 }
-.menu p { margin: 4px 10px 8px; font-size: 13px; color: var(--mute); line-height: 1.4; }
-.menu p b { display: block; color: var(--ink); font-size: 15px; font-weight: 500; }
-.menu .btn { justify-content: flex-start; box-shadow: none; }
+.menu-id { margin: 6px 12px 10px; padding-bottom: 12px; border-bottom: 1px solid color-mix(in srgb, var(--mute) 22%, transparent); line-height: 1.4; }
+.menu-id b, .menu-id span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-id b { color: var(--ink); font-size: 15px; font-weight: 500; }
+.menu-id span { color: var(--mute); font-size: 13px; margin-top: 2px; }
+.menu .btn { justify-content: flex-start; box-shadow: none; background: transparent; min-height: 42px; padding: 0 12px; border-radius: 12px; font-size: 14px; }
+.menu .btn:hover { box-shadow: var(--inset-sm); }
+.menu .btn svg { width: 18px; height: 18px; color: var(--mute); }
+.avatar .guest { color: var(--mute); }
+.avatar .guest svg { width: 22px; height: 22px; }
 
 /* ─── 書架 ─── */
 .shelf { max-width: 1240px; margin: 0 auto; padding: 8px max(4vw, 16px) 0; }
@@ -206,8 +219,8 @@ svg { width: 20px; height: 20px; flex: none; }
 .ring .num b { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ring .num small { display: block; font-size: 12px; color: var(--mute); margin-top: 4px; }
 .stepper { display: flex; align-items: center; gap: 10px; }
-.stepper .field { width: calc(3ch + 34px); padding: 10px 8px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 500; }
-.stepper span { color: var(--mute); font-size: 14px; white-space: nowrap; }
+.stepper .field { width: calc(3ch + 34px); padding: 10px 8px; text-align: center; font: 500 16px/1 var(--sans); font-variant-numeric: tabular-nums; }
+.stepper span { color: var(--mute); font: 500 15px/1 var(--sans); white-space: nowrap; }
 .prog-side { display: grid; gap: 16px; }
 .prog-side .seg { width: 100%; }
 .prog-side .seg button { flex: 1; padding: 0 6px; }
@@ -227,8 +240,8 @@ label.lab { display: grid; gap: 8px; font-size: 13px; color: var(--mute); font-w
 
 .composer { display: grid; gap: 14px; }
 .composer-row { display: flex; gap: 12px; align-items: center; }
-.page-in { display: flex; align-items: center; gap: 4px; border-radius: 999px; box-shadow: var(--inset-sm); padding: 0 6px 0 16px; min-height: 44px; color: var(--mute); font-size: 14px; }
-.page-in input { width: calc(3ch + 10px); border: 0; background: transparent; outline: none; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 5px; text-align: center; }
+.page-in { display: flex; align-items: center; gap: 6px; border-radius: 999px; box-shadow: var(--inset-sm); padding: 0 16px; min-height: 44px; color: var(--mute); font: 500 15px/1 var(--sans); }
+.page-in input { width: calc(3ch + 8px); border: 0; background: transparent; outline: none; font: 500 16px/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 4px; text-align: center; -webkit-appearance: none; appearance: none; }
 .composer-row .btn { margin-left: auto; }
 
 .notes { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 14px; }
@@ -367,3 +380,57 @@ dialog.sheet[open] { animation: pop .32s cubic-bezier(.2, .9, .25, 1.15); }
 
 /* 頁數欄位：最多 3 位數，寬度只留 3 個字 */
 .pages-field { width: 7.5em; }
+
+/* ─── 共用頁面框架（筆記總覽、書籍管理） ─── */
+.page { max-width: 1040px; margin: 0 auto; padding: 20px max(4vw, 16px) 80px; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 30px; }
+.page-head h1 { margin: 0; font-size: 32px; line-height: 1.2; }
+.page-head p { margin: 6px 0 0; }
+.page-actions { display: flex; align-items: center; gap: 14px; }
+.search { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 18px; border-radius: 999px; box-shadow: var(--inset-sm); width: min(340px, 100%); color: var(--mute); }
+.search input { border: 0; outline: none; background: transparent; flex: 1; font-size: 16px; color: var(--ink); min-height: 44px; }
+.search input::placeholder { color: var(--faint); }
+.search:focus-within { box-shadow: var(--inset-sm), 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.empty-box { text-align: center; padding: 60px 20px; border-radius: var(--r-lg); box-shadow: var(--inset); color: var(--mute); }
+.empty-box b { display: block; color: var(--ink); font: 700 20px/1.5 var(--serif); margin-bottom: 6px; }
+
+.thumb { width: 52px; aspect-ratio: 2 / 3; border-radius: 3px 7px 7px 3px; overflow: hidden; flex: none; position: relative; box-shadow: 0 5px 12px rgba(40, 46, 58, .22); display: grid; place-items: center; }
+.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.thumb span { font: 700 13px/1.1 var(--serif); padding: 4px; text-align: center; overflow: hidden; max-height: 100%; }
+
+/* 筆記總覽 */
+.nbook { border-radius: var(--r-lg); box-shadow: var(--raise); padding: 22px 24px; }
+.nbook + .nbook { margin-top: 28px; }
+.nbook-head { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.nbook-head .tt { flex: 1; }
+.nbook-head h2 { margin: 0; font: 700 19px/1.35 var(--serif); }
+.nbook-head p { margin: 2px 0 0; font-size: 13px; color: var(--mute); }
+.nbook .notes { margin: 0; }
+.note mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+
+/* 書籍管理 */
+.manage-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.mrow { display: flex; align-items: center; gap: 18px; padding: 14px 20px; border-radius: var(--r-md); box-shadow: var(--raise-sm); cursor: pointer; transition: box-shadow .2s; }
+.mrow:has(input:checked) { box-shadow: var(--inset-sm); }
+.mrow .info { flex: 1; min-width: 0; }
+.mrow .info b { display: block; font: 700 16px/1.4 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .info span { display: block; font-size: 13px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .stat { text-align: right; font-size: 13px; color: var(--mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mrow .stat b { display: block; color: var(--ink); font-size: 15px; font-weight: 500; }
+.check-all { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; color: var(--ink-2); font-size: 14px; font-weight: 500; }
+.mrow input, .check-all input { position: absolute; opacity: 0; pointer-events: none; }
+.box { width: 26px; height: 26px; border-radius: 9px; box-shadow: var(--inset-sm); flex: none; display: grid; place-items: center; transition: background .2s; }
+input:checked + .box { background: var(--ball); box-shadow: var(--ball-shadow); }
+input:checked + .box::after { content: ""; width: 11px; height: 6px; border: solid #fff; border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+input:indeterminate + .box::after { content: ""; width: 11px; height: 2.5px; border-radius: 2px; background: var(--accent); }
+input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+@media (max-width: 640px) {
+  .page { padding: 12px 14px 60px; }
+  .search { width: 100%; }
+  .nbook { padding: 18px 16px; }
+  .mrow { gap: 12px; padding: 12px 14px; }
+  .mrow .stat span { display: none; }
+  .thumb { width: 42px; }
+  .top .seg button { padding: 0 11px; }
+}
