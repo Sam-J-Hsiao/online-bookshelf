@@ -79,11 +79,8 @@ svg { width: 20px; height: 20px; flex: none; }
 .btn.danger, .btn.ghost.danger, .btn.ghost.danger:hover { color: var(--danger); }
 .btn.danger-solid { color: var(--danger); }
 .btn.danger-solid:not(:disabled):hover { color: var(--danger); }
-.btn[data-sure], .btn.danger-solid[data-sure] {
-  background: linear-gradient(145deg, #e0644a, var(--danger) 60%, #a8331d); color: #fff !important;
-  box-shadow: 0 8px 16px rgba(200, 68, 43, .32), var(--raise-sm); padding: 0 18px; animation: nudge .35s; transition: none;
-}
-@keyframes nudge { 30% { transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+.btn.danger-fill { background: linear-gradient(145deg, #e0644a, var(--danger) 60%, #a8331d); color: #fff; box-shadow: 0 8px 16px rgba(200, 68, 43, .3), var(--raise-sm); }
+.btn.danger-fill:hover { color: #fff; }
 .btn:disabled, .btn-round:disabled { opacity: .45; cursor: not-allowed; }
 .btn-sm { min-height: 36px; padding: 0 14px; font-size: 14px; }
 .icon-btn { width: 36px; height: 36px; }
@@ -435,3 +432,9 @@ input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 3
 .acct-id span { font-size: 13px; color: var(--mute); }
 .account .btn svg { width: 18px; height: 18px; }
 .account:empty { display: none; }
+
+/* 確認視窗 */
+.confirm { width: min(400px, calc(100vw - 24px)); }
+.confirm form { gap: 10px; }
+.confirm h2 { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.45; }
+.confirm p { margin: 0 0 8px; font-size: 14px; }

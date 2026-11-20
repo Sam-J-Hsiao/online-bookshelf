@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201339";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201339";
-import { lookupIsbn, translateWord } from "./api.js?v=202611201339";
-import { createStore, demoStore } from "./store.js?v=202611201339";
-import { createFlow } from "./flow.js?v=202611201339";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201343";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201343";
+import { lookupIsbn, translateWord } from "./api.js?v=202611201343";
+import { createStore, demoStore } from "./store.js?v=202611201343";
+import { createFlow } from "./flow.js?v=202611201343";
 
-const APP_VERSION = "202611201339";
+const APP_VERSION = "202611201343";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -486,8 +486,7 @@ function manageBar() {
   all.disabled = !list.length;
   const del = $("#mDelete");
   del.disabled = !picked.size;
-  if (!picked.size) resetSure(del, "移除");
-  else if (!del.dataset.sure) del.textContent = `移除 ${picked.size} 本`;
+  del.textContent = picked.size ? `移除 ${picked.size} 本` : "移除";
 }
 function renderManage() {
   [...picked].forEach(id => { if (!book(id)) picked.delete(id); });
@@ -514,20 +513,24 @@ $("#mAll").addEventListener("change", e => {
 });
 $("#mDelete").addEventListener("click", async () => {
   const btn = $("#mDelete"), n = picked.size; if (!n) return;
-  if (!btn.dataset.sure) { armSure(btn, `確定移除 ${n} 本？筆記會一起刪除`, `移除 ${n} 本`); return; }
-  resetSure(btn, "移除"); btn.disabled = true;
+  const names = [...picked].map(id => book(id)?.title).filter(Boolean);
+  const ok = await confirmBox(`移除 ${n} 本書？`, `${names.slice(0, 3).map(t => `《${t}》`).join("、")}${n > 3 ? ` 等 ${n} 本` : ""}。這些書的閱讀筆記會一起刪除，無法復原；單字本裡的單字會保留。`, `移除 ${n} 本`);
+  if (!ok) return;
+  btn.disabled = true;
   const ids = [...picked]; let ok = 0;
   for (const id of ids) { try { await store.delBook(id); picked.delete(id); ok++; } catch (e) { console.error(e); } }
   toast(ok === ids.length ? `已移除 ${ok} 本書` : `移除了 ${ok} 本，${ids.length - ok} 本失敗`, ok !== ids.length);
   renderManage();
 });
 
-// 兩段式確認：第一下變紅色並改字，6 秒內再按才執行
-function armSure(btn, text, back) {
-  btn.dataset.sure = "1"; btn.dataset.back = back; btn.textContent = text;
-  clearTimeout(btn._t); btn._t = setTimeout(() => resetSure(btn, back), 6000);
+// 確認視窗：回傳 true／false
+function confirmBox(title, body, ok = "移除") {
+  const d = $("#dConfirm");
+  $("#cTitle").textContent = title; $("#cBody").textContent = body; $("#cOk").textContent = ok;
+  d.returnValue = "";
+  d.showModal(); $("#cOk").focus();
+  return new Promise(res => d.addEventListener("close", () => res(d.returnValue === "yes"), { once: true }));
 }
-function resetSure(btn, text) { clearTimeout(btn._t); delete btn.dataset.sure; btn.textContent = btn.dataset.back && btn.id !== "mDelete" ? btn.dataset.back : text; }
 
 /* ───────── 全域點擊 ───────── */
 document.addEventListener("click", async e => {
@@ -548,7 +551,8 @@ document.addEventListener("click", async e => {
   const b = book(t.dataset.noteBook || S.selId); if (!b) return;
   if (act === "edit") return openBook(b);
   if (act === "delBook") {
-    if (!t.dataset.sure) { armSure(t, "確定移除？再按一次", "移除這本書"); return; }
+    const ok = await confirmBox(`移除《${b.title}》？`, `這本書的 ${(b.notes || []).length} 則閱讀筆記會一起刪除，無法復原；單字本裡的單字會保留。`);
+    if (!ok) return;
     dBook.close(); return save(() => store.delBook(b.id), `已移除《${b.title}》`);
   }
   if (t.dataset.step) return queueProgress(b.id, (progVal ?? b.current ?? 0) + +t.dataset.step);
