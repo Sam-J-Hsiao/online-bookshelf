@@ -6,7 +6,7 @@
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) {
+export function createFlow(el, { onIndex, onSettle, onActivate } = {}) {
   let items = [], n = 0;
   let pos = 0, vel = 0, target = 0;
   let mode = "idle";               // idle | spring | wheel | drag
@@ -47,7 +47,6 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
     }
     const idx = n ? clamp(Math.round(pos), 0, n - 1) : -1;
     if (idx !== lastIdx) { lastIdx = idx; onIndex?.(idx); }
-    onFrame?.(n > 1 ? clamp(pos / (n - 1), 0, 1) : 0, pos);
   }
 
   // 以時間為準的彈簧：60Hz、120Hz 或分頁在背景時速度都一致（每 1/120 秒積分一次）
@@ -130,11 +129,12 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
   const end = e => {
     if (e.pointerId !== pid) return;
     pid = null; el.classList.remove("dragging");
-    if (!moved) {                                    // 點擊：翻到那本書；點中間那本則觸發 onActivate
+    if (!moved) {                                    // 點擊：翻到那本書，並通知外部（例如捲到筆記區）
       const it = e.target.closest?.(".book");
       if (it) {
-        const i = +it.dataset.i;
-        if (i === clamp(Math.round(pos), 0, n - 1)) onActivate?.(i); else springTo(i, 0);
+        const i = +it.dataset.i, centered = i === clamp(Math.round(pos), 0, n - 1) && mode === "idle";
+        if (!centered) springTo(i, 0);
+        onActivate?.(i, centered);
       }
       return;
     }
@@ -173,12 +173,6 @@ export function createFlow(el, { onIndex, onSettle, onFrame, onActivate } = {}) 
     update(fn) { items.forEach((nd, i) => fn(nd, i)); },
     go(delta) { const base = mode === "spring" ? target : Math.round(pos); springTo(base + delta, vel, false); },
     goTo(i) { springTo(i, 0); },
-    /** 滑桿用：0..1 的連續位置 */
-    scrubTo(f, done) {
-      if (n < 2) return;
-      if (done) { springTo(Math.round(f * (n - 1)), 0); return; }
-      mode = "drag"; pos = clamp(f, 0, 1) * (n - 1); kick();
-    },
     get index() { return clamp(Math.round(pos), 0, Math.max(0, n - 1)); },
     get count() { return n; }
   };

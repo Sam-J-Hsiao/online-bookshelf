@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#eceef2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#24272c" media="(prefers-color-scheme: dark)">
-<title>我的書櫃</title>
+<title>閱讀誌</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap" rel="stylesheet">
@@ -22,13 +22,14 @@
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5h9.5a3 3 0 013 3V20H8a3 3 0 01-3-3V4.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a3 3 0 013-3h9.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
 
 <header class="top">
-  <a class="brand" href="./" aria-label="我的書櫃">
+  <a class="brand" href="./" aria-label="閱讀誌">
     <span class="brand-mark"><svg><use href="#i-book"/></svg></span>
-    <span class="brand-name">我的書櫃</span>
+    <span class="brand-name">閱讀誌</span>
   </a>
   <nav class="seg" aria-label="切換頁面">
     <button data-view="shelf" aria-pressed="true">書櫃</button>
@@ -61,7 +62,6 @@
       <div class="caption" id="cap" aria-live="polite"></div>
       <button class="btn-round" id="next" aria-label="下一本"><svg><use href="#i-right"/></svg></button>
     </div>
-    <div class="scrub" id="scrub" aria-hidden="true"><div class="scrub-track"><i class="scrub-fill"></i><b class="ball scrub-knob"></b></div></div>
   </section>
 
   <section class="detail" id="detail"></section>
@@ -76,6 +76,7 @@
       </div>
       <div class="words-actions">
         <label class="select"><span class="sr">依書籍篩選</span><select id="wFilter"></select></label>
+        <button class="btn" id="exportBtn"><svg><use href="#i-download"/></svg>匯出 CSV</button>
         <button class="btn accent" id="reviewBtn">開始複習</button>
       </div>
     </div>

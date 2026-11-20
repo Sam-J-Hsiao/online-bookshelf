@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────
-   我的書櫃 · 新擬物化（Neumorphism）
+   閱讀誌 · 新擬物化（Neumorphism）
    - 同色系淺灰底，元件以「浮起／凹陷」陰影表現層次，不用外框線
    - 只有一個重點色：橘。用在主要動作、進度、選取狀態
    - 思源宋體（Noto Serif TC）：閱讀內容 —— 書名、筆記內文、單字、品牌字
@@ -183,16 +183,11 @@ svg { width: 20px; height: 20px; flex: none; }
 .caption p { margin: 2px 0 0; color: var(--mute); font-size: 14px; }
 .caption p b { color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
 
-/* 底部滑桿：凹槽軌道＋橘色立體球 */
-.scrub { max-width: 560px; margin: 18px auto 0; padding: 14px 16px; cursor: pointer; touch-action: none; }
-.scrub-track { position: relative; height: 12px; border-radius: 12px; box-shadow: var(--inset-sm); }
-.scrub-fill { position: absolute; left: 6px; top: 50%; height: 2px; margin-top: -1px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--accent-hi)); opacity: .6; }
 .ball { display: block; border-radius: 50%; background: var(--ball); box-shadow: var(--ball-shadow); }
-.scrub-knob { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; left: 0; }
 
 /* ─── 詳情 ─── */
 .detail { max-width: 1240px; margin: 0 auto; padding: 34px max(4vw, 16px) 72px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; align-items: start; }
-.card { background: var(--base); border-radius: var(--r-lg); box-shadow: var(--raise); padding: 26px; }
+.card { scroll-margin-top: 92px; background: var(--base); border-radius: var(--r-lg); box-shadow: var(--raise); padding: 26px; }
 .card + .card { margin-top: 28px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .card-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink-2); letter-spacing: .04em; }
@@ -211,7 +206,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .ring .num b { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ring .num small { display: block; font-size: 12px; color: var(--mute); margin-top: 4px; }
 .stepper { display: flex; align-items: center; gap: 10px; }
-.stepper .field { width: 92px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 500; }
+.stepper .field { width: 68px; padding: 10px 8px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 500; }
 .stepper span { color: var(--mute); font-size: 14px; white-space: nowrap; }
 .prog-side { display: grid; gap: 16px; }
 .prog-side .seg { width: 100%; }
@@ -233,7 +228,7 @@ label.lab { display: grid; gap: 8px; font-size: 13px; color: var(--mute); font-w
 .composer { display: grid; gap: 14px; }
 .composer-row { display: flex; gap: 12px; align-items: center; }
 .page-in { display: flex; align-items: center; gap: 4px; border-radius: 999px; box-shadow: var(--inset-sm); padding: 0 6px 0 16px; min-height: 44px; color: var(--mute); font-size: 14px; }
-.page-in input { width: 56px; border: 0; background: transparent; outline: none; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 4px; }
+.page-in input { width: 3.4ch; border: 0; background: transparent; outline: none; font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; padding: 8px 4px; }
 .composer-row .btn { margin-left: auto; }
 
 .notes { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 14px; }
@@ -369,3 +364,6 @@ dialog.sheet[open] { animation: pop .32s cubic-bezier(.2, .9, .25, 1.15); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
+
+/* 頁數欄位：最多 3 位數，寬度只留 3 個字 */
+.pages-field { width: 7.5em; }

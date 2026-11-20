@@ -11,6 +11,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 const icon = n => `<svg><use href="#i-${n}"/></svg>`;
 const LANGS = [["zh", "中文"], ["en", "英文"], ["ja", "日文"], ["other", "其他"]];
 const STATUS = [["want", "想讀"], ["reading", "閱讀中"], ["done", "讀完"]];
+const MAX_PAGES = 999;
+let restoringFocus = false;
 const deweyName = m => (m == null ? "未分類" : DEWEY.find(d => d.c === m)?.name || "");
 
 // 沒有封面圖時的書封配色：低彩度、和介面同一個調子
@@ -63,14 +65,18 @@ $("#grouping").onclick = e => {
 /* ───────── 書架（cover flow） ───────── */
 const flow = createFlow($("#flow"), {
   onIndex: i => { const b = visible()[i]; if (b) { S.selId = b.id; renderCaption(b); } },
-  onSettle: i => { const b = visible()[i]; if (b) { S.selId = b.id; renderDetail(); } },
-  onFrame: f => {
-    const k = $(".scrub-knob"), fill = $(".scrub-fill"), w = $(".scrub-track").clientWidth;
-    k.style.transform = `translateX(${(f * w).toFixed(1)}px)`;
-    fill.style.width = `${Math.max(0, f * w - 6).toFixed(1)}px`;
-  },
-  onActivate: () => $("#detail").scrollIntoView({ behavior: "smooth", block: "start" })
+  onSettle: i => { const b = visible()[i]; if (b) { S.selId = b.id; renderDetail(); } if (jumpPending) jumpToWork(); },
+  // 點書本：翻到那本，停穩後自動捲到「查生詞／閱讀筆記」
+  onActivate: (i, centered) => { jumpPending = true; if (centered) jumpToWork(); }
 });
+let jumpPending = false;
+function jumpToWork() {
+  jumpPending = false;
+  const wide = matchMedia("(min-width: 961px)").matches;
+  // 寬螢幕兩欄並排，捲到詳情頂端兩塊都看得到；窄螢幕直接捲到查生詞（英文書）或筆記
+  const target = wide ? $("#detail") : ($("#fWord") || $("#fNote"))?.closest(".card");
+  target?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
 
 function coverNode(b) {
   const el = document.createElement("div");
@@ -91,7 +97,7 @@ function coverNode(b) {
 function renderShelf(reset = false) {
   const msg = $("#stageMsg"), list = visible();
   const showFlow = !gated() && list.length > 0;
-  $("#flowNav").hidden = $("#scrub").hidden = !showFlow;
+  $("#flowNav").hidden = !showFlow;
   $("#flow").hidden = !showFlow;
   if (gated()) {
     msg.hidden = false;
@@ -126,16 +132,6 @@ function renderCaption(b) {
 $("#prev").onclick = () => flow.go(-1);
 $("#next").onclick = () => flow.go(1);
 
-// 滑桿
-{
-  const sc = $("#scrub"), tr = $(".scrub-track");
-  let on = false;
-  const f = e => { const r = tr.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
-  sc.addEventListener("pointerdown", e => { on = true; sc.setPointerCapture(e.pointerId); flow.scrubTo(f(e)); });
-  sc.addEventListener("pointermove", e => { if (on) flow.scrubTo(f(e)); });
-  const up = e => { if (!on) return; on = false; flow.scrubTo(f(e), true); };
-  sc.addEventListener("pointerup", up); sc.addEventListener("pointercancel", up);
-}
 
 /* ───────── 書的詳情 ───────── */
 const CIRC = 2 * Math.PI * 48;
@@ -165,7 +161,7 @@ function renderDetail() {
         <div class="prog-side">
           <div class="stepper">
             <button class="btn-round icon-btn" data-step="-1" aria-label="少一頁">${icon("minus")}</button>
-            <input class="field" id="cur" type="number" inputmode="numeric" min="0" ${b.pages ? `max="${b.pages}"` : ""} value="${b.current || 0}" aria-label="讀到第幾頁">
+            <input class="field pg-num" id="cur" type="text" inputmode="numeric" maxlength="3" autocomplete="off" value="${b.current || 0}" aria-label="讀到第幾頁">
             <button class="btn-round icon-btn" data-step="1" aria-label="多一頁">${icon("plus")}</button>
             <span>頁</span>
           </div>
@@ -193,7 +189,7 @@ function renderDetail() {
     <form class="composer" id="fNote">
       <textarea class="field" id="nText" placeholder="這一段讓你想到什麼？" aria-label="筆記內容"></textarea>
       <div class="composer-row">
-        <label class="page-in">第<input id="nPage" type="number" inputmode="numeric" min="0" value="${b.current || ""}" aria-label="頁碼">頁</label>
+        <label class="page-in">第<input class="pg-num" id="nPage" type="text" inputmode="numeric" maxlength="3" autocomplete="off" value="${b.current || ""}" aria-label="頁碼">頁</label>
         <button class="btn accent">加入筆記</button>
       </div>
     </form>
@@ -203,7 +199,11 @@ function renderDetail() {
     if (draft) $("#nText").value = draft;
     if (wDraft && $("#wIn")) $("#wIn").value = wDraft;
     if (focusId === "cur" && progVal != null) $("#cur").value = progVal;
-    if (focusId && document.getElementById(focusId)) document.getElementById(focusId).focus({ preventScroll: true });
+    const f = focusId && document.getElementById(focusId);
+    if (f) {                                   // 重繪後把游標放回原位（不要觸發「點一下全選」）
+      restoringFocus = true; f.focus({ preventScroll: true }); restoringFocus = false;
+      if (f.type === "text" || f.tagName === "TEXTAREA") { const n = f.value.length; f.setSelectionRange(n, n); }
+    }
   }
   if (S.wordMsg?.bookId === b.id) showWord(S.wordMsg.word);
   $("#fNote").onsubmit = e => {
@@ -221,7 +221,7 @@ function renderDetail() {
 let progT = 0, progVal = null;
 function queueProgress(id, v, writeBack = true) {
   const b = book(id); if (!b) return;
-  v = Math.max(0, Math.round(v || 0)); if (b.pages) v = Math.min(v, b.pages);
+  v = Math.min(MAX_PAGES, Math.max(0, Math.round(v || 0))); if (b.pages) v = Math.min(v, b.pages);
   progVal = v; if (writeBack) $("#cur").value = v;
   const p = b.pages ? Math.round(v / b.pages * 100) : 0;
   const arc = $(".ring .arc"); if (arc) { arc.style.opacity = p ? 1 : 0; arc.setAttribute("stroke-dashoffset", (CIRC * (1 - p / 100)).toFixed(1)); }
@@ -266,7 +266,7 @@ function renderWords() {
   const list = gated() ? [] : S.words.filter(w => S.wFilter === "all" || w.bookId === S.wFilter);
   const known = list.filter(w => (w.score || 0) >= 3).length;
   $("#wCount").textContent = list.length ? `${list.length} 個單字・${known} 個已熟記` : "";
-  $("#reviewBtn").disabled = !list.length;
+  $("#reviewBtn").disabled = $("#exportBtn").disabled = !list.length;
   $("#wGrid").innerHTML = gated() ? `<div class="words-empty"><b>登入後就能看到你的單字本</b></div>`
     : list.map(w => `<article class="wtile">
       <div class="hw"><b>${esc(w.word)}</b></div>
@@ -278,6 +278,21 @@ function renderWords() {
     </article>`).join("") || `<div class="words-empty"><b>還沒有單字</b>在英文書的頁面查生詞，就會自動收進這裡。</div>`;
 }
 $("#wFilter").onchange = e => { S.wFilter = e.target.value; renderWords(); };
+
+// 匯出 CSV（加 BOM，Excel 和 Numbers 打開中文不會亂碼）
+$("#exportBtn").onclick = () => {
+  const list = S.words.filter(w => S.wFilter === "all" || w.bookId === S.wFilter);
+  if (!list.length) return;
+  const cell = v => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const head = ["單字", "音標", "詞性", "中文", "英文釋義", "例句", "出處", "熟練度", "加入日期"];
+  const rows = list.map(w => [w.word, w.phonetic, w.pos, w.zh, w.def, w.example, book(w.bookId)?.title || "", Math.min(3, w.score || 0), (w.at || "").slice(0, 10)]);
+  const csv = "\ufeff" + [head, ...rows].map(r => r.map(cell).join(",")).join("\r\n");
+  const bk = S.wFilter === "all" ? "" : "-" + (book(S.wFilter)?.title || "").replace(/[\\/:*?"<>|]/g, "").slice(0, 30);
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })), download: `閱讀誌單字本${bk}-${today()}.csv` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`已匯出 ${list.length} 個單字`);
+};
 
 /* 字卡複習 */
 let deck = [], di = 0;
@@ -327,7 +342,7 @@ function openBook(b = null) {
     <label class="lab">書名<input class="field" id="fTitle" required value="${esc(b?.title || "")}"></label>
     <div class="grid2">
       <label class="lab">作者<input class="field" id="fAuthor" value="${esc(b?.author || "")}"></label>
-      <label class="lab">總頁數<input class="field" id="fPages" type="number" min="1" inputmode="numeric" value="${b?.pages || ""}"></label>
+      <label class="lab">總頁數<input class="field pg-num pages-field" id="fPages" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="最多 999" value="${b?.pages || ""}"></label>
     </div>
     <div class="grid2">
       <label class="lab">杜威號碼<input class="field" id="fDewey" inputmode="decimal" placeholder="例如 158.1" value="${esc(b?.dewey || "")}"></label>
@@ -366,7 +381,7 @@ async function doLookup() {
     if (!r) { msg.textContent = "Open Library 查不到這本書，請手動填寫。"; return; }
     found = { ...r, isbn: n };
     $("#fTitle").value = r.title; $("#fAuthor").value = r.author;
-    if (r.pages) $("#fPages").value = r.pages;
+    if (r.pages) $("#fPages").value = Math.min(r.pages, MAX_PAGES);
     $("#fLang").value = r.lang; $("#fDewey").value = r.dewey; $("#fMain").value = r.deweyMain ?? "";
     $("#foundBox").innerHTML = `<div class="found">${r.cover ? `<img src="${esc(r.cover)}" alt="" referrerpolicy="no-referrer">` : '<span class="ph"></span>'}
       <div><b>${esc(r.title)}</b><span>${esc(r.author || "")}${r.publisher ? "・" + esc(r.publisher) : ""}</span></div></div>`;
@@ -394,7 +409,7 @@ $("#fBook").addEventListener("submit", async e => {
   const guessed = !old && !dd && main != null && fromLookup && found.deweyGuessed && found.deweyMain === main;
   const base = old ? strip(old) : { isbn, current: 0, status: "want", notes: [], addedAt: today(),
     cover: fromLookup ? found.cover : "", subtitle: fromLookup ? found.subtitle || "" : "", publisher: fromLookup ? found.publisher || "" : "", published: fromLookup ? found.published || "" : "" };
-  const pages = +$("#fPages").value || null;
+  const pages = Math.min(MAX_PAGES, +$("#fPages").value || 0) || null;
   const doc = { ...base, title, author: $("#fAuthor").value.trim(), pages, current: pages ? Math.min(base.current || 0, pages) : base.current || 0,
     dewey: dd?.number || "", deweyMain: main, deweyGuessed: old ? (old.deweyGuessed && old.deweyMain === main && !dd) : guessed,
     shelf: $("#fShelf").value.trim(), lang: $("#fLang").value };
@@ -443,6 +458,19 @@ document.addEventListener("click", async e => {
   if (t.dataset.delNote) return save(() => store.putBook(b.id, strip({ ...b, notes: (b.notes || []).filter(n => n.id !== t.dataset.delNote) })));
 });
 $("#addBtn").onclick = () => openBook();
+
+// 頁數欄位：點一下（或 Tab 進來）就全選，直接輸入就會取代原本的數字；只接受 0–999
+let selectOnUp = null;
+document.addEventListener("focusin", e => { if (!restoringFocus && e.target.classList?.contains("pg-num")) { e.target.select(); selectOnUp = e.target; } });
+document.addEventListener("mouseup", e => {           // Safari 會在 mouseup 時取消選取，所以再選一次
+  if (selectOnUp && e.target === selectOnUp) { e.preventDefault(); selectOnUp.select(); }
+  selectOnUp = null;
+});
+document.addEventListener("input", e => {
+  const t = e.target; if (!t.classList?.contains("pg-num")) return;
+  const v = t.value.replace(/\D/g, "").slice(0, 3);
+  if (v !== t.value) t.value = v;
+}, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape") { const m = $("#menu"); if (m) m.hidden = true; } });
 
 function setView(v) {
