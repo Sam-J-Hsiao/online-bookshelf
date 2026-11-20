@@ -517,10 +517,10 @@ $("#mDelete").addEventListener("click", async () => {
   renderManage();
 });
 
-// 兩段式確認：第一下變紅色並改字，4 秒內再按才執行
+// 兩段式確認：第一下變紅色並改字，6 秒內再按才執行
 function armSure(btn, text, back) {
   btn.dataset.sure = "1"; btn.dataset.back = back; btn.textContent = text;
-  clearTimeout(btn._t); btn._t = setTimeout(() => resetSure(btn, back), 4000);
+  clearTimeout(btn._t); btn._t = setTimeout(() => resetSure(btn, back), 6000);
 }
 function resetSure(btn, text) { clearTimeout(btn._t); delete btn.dataset.sure; btn.textContent = btn.dataset.back && btn.id !== "mDelete" ? btn.dataset.back : text; }
 
