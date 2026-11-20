@@ -126,7 +126,7 @@ svg { width: 20px; height: 20px; flex: none; }
 .chip em { font-style: normal; font-size: 12px; color: var(--mute); font-variant-numeric: tabular-nums; }
 .chip[aria-pressed="true"] { box-shadow: var(--inset-sm); color: var(--accent); }
 .chip[aria-pressed="true"] em { color: var(--accent); }
-#demoBar { position: absolute; z-index: 5; top: 16px; left: 50%; transform: translateX(-50%); }
+#demoBar { position: absolute; z-index: 5; bottom: 16px; left: 50%; transform: translateX(-50%); }
 #demoBar:empty { display: none; }
 .demo-pill { white-space: nowrap; background: var(--base); display: inline-flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; min-height: 36px; border-radius: 999px; box-shadow: var(--inset-sm); font-size: 13px; color: var(--mute); }
 .demo-pill .btn { min-height: 28px; padding: 0 12px; font-size: 13px; }
@@ -156,7 +156,7 @@ svg { width: 20px; height: 20px; flex: none; }
   box-shadow: 0 1px 1px rgba(0, 0, 0, .08), 0 10px 22px rgba(40, 46, 58, .22);
   display: flex; flex-direction: column; padding: 18px 16px 18px 22px; color: #fff;
 }
-.cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cover img { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .cover::before { /* 書脊 */
   content: ""; position: absolute; z-index: 2; left: 0; top: 0; bottom: 0; width: 9px;
   background: linear-gradient(90deg, rgba(0, 0, 0, .22), rgba(255, 255, 255, .22) 55%, rgba(0, 0, 0, .06));
@@ -167,9 +167,9 @@ svg { width: 20px; height: 20px; flex: none; }
     linear-gradient(115deg, rgba(255, 255, 255, .16), transparent 38%),
     linear-gradient(90deg, rgba(20, 22, 28, var(--shade, 0)), rgba(20, 22, 28, calc(var(--shade, 0) * .4)));
 }
-.cover .t { position: relative; z-index: 1; font: 700 clamp(16px, 1.6vw, 20px)/1.3 var(--serif); text-wrap: balance; overflow-wrap: anywhere; }
-.cover .rule { position: relative; z-index: 1; width: 28px; height: 2px; background: currentColor; opacity: .55; margin: 14px 0; }
-.cover .a { position: relative; z-index: 1; margin-top: auto; font-size: 12px; opacity: .85; }
+.cover .t { position: relative; z-index: 0; font: 700 clamp(16px, 1.6vw, 20px)/1.3 var(--serif); text-wrap: balance; overflow-wrap: anywhere; }
+.cover .rule { position: relative; z-index: 0; width: 28px; height: 2px; background: currentColor; opacity: .55; margin: 14px 0; }
+.cover .a { position: relative; z-index: 0; margin-top: auto; font-size: 12px; opacity: .85; }
 .cover .p { position: absolute; z-index: 4; left: 14px; right: 12px; bottom: 9px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .38); overflow: hidden; }
 .cover .p i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .stage-msg { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; gap: 18px; padding: 24px; }
