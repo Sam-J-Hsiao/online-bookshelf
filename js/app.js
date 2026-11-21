@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611201348";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611201348";
-import { lookupIsbn, translateWord } from "./api.js?v=202611201348";
-import { createStore, demoStore } from "./store.js?v=202611201348";
-import { createFlow } from "./flow.js?v=202611201348";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211229";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211229";
+import { lookupIsbn, translateWord } from "./api.js?v=202611211229";
+import { createStore, demoStore } from "./store.js?v=202611211229";
+import { createFlow } from "./flow.js?v=202611211229";
 
-const APP_VERSION = "202611201348";
+const APP_VERSION = "202611211229";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -28,7 +28,7 @@ const PAL = [["#3e4652", "#59626f", "#fff"], ["#e4ded3", "#f1ece3", "#3a3a3a"], 
   ["#9a5a4a", "#b8735f", "#fff"], ["#2f4f6e", "#46698c", "#fff"], ["#c8a35a", "#dcbb76", "#2c2a25"], ["#77708f", "#9089a9", "#fff"]];
 const pal = t => { let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
 
-const S = { books: [], words: [], selId: null, group: "dewey", filter: "all", wFilter: "all", auth: null, view: "shelf", wordMsg: null, sig: "" };
+const S = { ready: false, books: [], words: [], selId: null, group: "dewey", filter: "all", wFilter: "all", auth: null, view: "shelf", wordMsg: null, sig: "" };
 let store = null;
 
 /* ───────── 提示 ───────── */
@@ -104,9 +104,14 @@ function coverNode(b) {
 
 function renderShelf(reset = false) {
   const msg = $("#stageMsg"), list = visible();
-  const showFlow = !gated() && list.length > 0;
+  const showFlow = S.ready && !gated() && list.length > 0;
   $("#flowNav").hidden = !showFlow;
   $("#flow").hidden = !showFlow;
+  if (!S.ready && !gated()) {
+    msg.hidden = false; $("#flowNav").hidden = true; $("#flow").hidden = true;
+    msg.innerHTML = `<div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div><p>正在打開你的書櫃</p>`;
+    flow.setItems([]); S.sig = ""; renderDetail(); return;
+  }
   if (gated()) {
     msg.hidden = false;
     msg.innerHTML = `<h2>登入，打開你的書櫃</h2><p>書、閱讀筆記和單字會存在你自己的帳號裡，換裝置也看得到。</p>
@@ -594,6 +599,7 @@ function openInShelf(id) {
 /* ───────── 啟動 ───────── */
 function render(reset) { renderWho(); renderToolbar(); renderShelf(reset); renderWords(); if (S.view === "notes") renderNotes(); if (S.view === "manage") renderManage(); }
 const onData = (books, words) => {
+  S.ready = true;
   if (!progT || document.activeElement?.id !== "cur") progVal = null;
   S.books = books.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b)) || a.title.localeCompare(b.title, "zh-Hant"));
   S.words = words.slice().sort((a, b) => (b.at || "").localeCompare(a.at || ""));
@@ -602,6 +608,8 @@ const onData = (books, words) => {
 };
 const onAuth = a => {
   S.auth = a;
+  if (a.mode === "cloud" && a.user) S.ready = false;   // 換帳號時等新資料
+  if (a.mode === "cloud" && !a.user) S.ready = true;
   if (a.message) toast(a.message, true);
   render(true);
 };
