@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211229";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211229";
-import { lookupIsbn, translateWord } from "./api.js?v=202611211229";
-import { createStore, demoStore } from "./store.js?v=202611211229";
-import { createFlow } from "./flow.js?v=202611211229";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211230";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211230";
+import { lookupIsbn, translateWord } from "./api.js?v=202611211230";
+import { createStore, demoStore } from "./store.js?v=202611211230";
+import { createFlow } from "./flow.js?v=202611211230";
 
-const APP_VERSION = "202611211229";
+const APP_VERSION = "202611211230";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -41,7 +41,8 @@ const save = async (fn, msg) => { try { await fn(); if (msg) toast(msg); } catch
 const strip = ({ id, ...r }) => r;
 const book = id => S.books.find(b => b.id === id);
 const pct = b => (b.pages ? Math.min(100, Math.round(((b.current || 0) / b.pages) * 100)) : 0);
-const gated = () => store?.mode === "cloud" && !S.auth?.user;
+// 只有「確定是雲端模式且確定沒登入」才算未登入；登入狀態還沒回來時視為載入中
+const gated = () => store?.mode === "cloud" && S.auth?.mode === "cloud" && !S.auth.user;
 const canWrite = () => store && !gated();
 
 /* ───────── 分類 ───────── */
