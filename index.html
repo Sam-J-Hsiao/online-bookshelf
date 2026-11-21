@@ -59,10 +59,10 @@
     <div class="stage" id="stage">
       <div id="demoBar"></div>
       <div class="flow" id="flow" tabindex="0" aria-label="書架：用左右鍵、觸控板或拖曳翻書"></div>
-      <div class="stage-msg" id="stageMsg" hidden></div>
+      <div class="stage-msg" id="stageMsg"><div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div><p>正在打開你的書櫃</p></div>
     </div>
 
-    <div class="flow-nav" id="flowNav">
+    <div class="flow-nav" id="flowNav" hidden>
       <button class="btn-round" id="prev" aria-label="上一本"><svg><use href="#i-left"/></svg></button>
       <div class="caption" id="cap" aria-live="polite"></div>
       <button class="btn-round" id="next" aria-label="下一本"><svg><use href="#i-right"/></svg></button>
