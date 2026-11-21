@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211230";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211230";
-import { lookupIsbn, translateWord } from "./api.js?v=202611211230";
-import { createStore, demoStore } from "./store.js?v=202611211230";
-import { createFlow } from "./flow.js?v=202611211230";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211232";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211232";
+import { lookupIsbn, translateWord } from "./api.js?v=202611211232";
+import { createStore, demoStore } from "./store.js?v=202611211232";
+import { createFlow } from "./flow.js?v=202611211232";
 
-const APP_VERSION = "202611211230";
+const APP_VERSION = "202611211232";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
