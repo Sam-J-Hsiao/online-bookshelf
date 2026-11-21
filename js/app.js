@@ -1,10 +1,10 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211236";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211236";
-import { lookupIsbn, translateWord } from "./api.js?v=202611211236";
-import { createStore, demoStore } from "./store.js?v=202611211236";
-import { createFlow } from "./flow.js?v=202611211236";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=202611211246";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=202611211246";
+import { lookupIsbn, translateWord } from "./api.js?v=202611211246";
+import { createStore, demoStore } from "./store.js?v=202611211246";
+import { createFlow } from "./flow.js?v=202611211246";
 
-const APP_VERSION = "202611211236";
+const APP_VERSION = "202611211246";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -28,7 +28,7 @@ const PAL = [["#3e4652", "#59626f", "#fff"], ["#e4ded3", "#f1ece3", "#3a3a3a"], 
   ["#9a5a4a", "#b8735f", "#fff"], ["#2f4f6e", "#46698c", "#fff"], ["#c8a35a", "#dcbb76", "#2c2a25"], ["#77708f", "#9089a9", "#fff"]];
 const pal = t => { let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
 
-const S = { books: [], words: [], selId: null, group: "dewey", filter: "all", wFilter: "all", auth: null, view: "shelf", wordMsg: null, sig: "" };
+const S = { ready: false, books: [], words: [], selId: null, group: "dewey", filter: "all", wFilter: "all", auth: null, view: "shelf", wordMsg: null, sig: "" };
 let store = null;
 
 /* ───────── 提示 ───────── */
@@ -41,7 +41,8 @@ const save = async (fn, msg) => { try { await fn(); if (msg) toast(msg); } catch
 const strip = ({ id, ...r }) => r;
 const book = id => S.books.find(b => b.id === id);
 const pct = b => (b.pages ? Math.min(100, Math.round(((b.current || 0) / b.pages) * 100)) : 0);
-const gated = () => store?.mode === "cloud" && !S.auth?.user;
+// 只有「確定是雲端模式且確定沒登入」才算未登入；登入狀態還沒回來時視為載入中
+const gated = () => store?.mode === "cloud" && S.auth?.mode === "cloud" && !S.auth.user;
 const canWrite = () => store && !gated();
 
 /* ───────── 分類 ───────── */
@@ -104,9 +105,14 @@ function coverNode(b) {
 
 function renderShelf(reset = false) {
   const msg = $("#stageMsg"), list = visible();
-  const showFlow = !gated() && list.length > 0;
+  const showFlow = S.ready && !gated() && list.length > 0;
   $("#flowNav").hidden = !showFlow;
   $("#flow").hidden = !showFlow;
+  if (!S.ready && !gated()) {
+    msg.hidden = false; $("#flowNav").hidden = true; $("#flow").hidden = true;
+    msg.innerHTML = `<div class="loading-dots" aria-hidden="true"><i></i><i></i><i></i></div><p>正在打開你的書櫃</p>`;
+    flow.setItems([]); S.sig = ""; renderDetail(); return;
+  }
   if (gated()) {
     msg.hidden = false;
     msg.innerHTML = `<h2>登入，打開你的書櫃</h2><p>書、閱讀筆記和單字會存在你自己的帳號裡，換裝置也看得到。</p>
@@ -142,13 +148,29 @@ $("#next").onclick = () => flow.go(1);
 
 
 /* ───────── 書的詳情 ───────── */
-const CIRC = 2 * Math.PI * 48;
+// 進度圓環：卡片表面刻出一圈凹槽，橘色弧直接填在凹槽裡，弧尾是一顆在槽裡滾動的立體球
+const RING = { c: 74, r: 65 };                       // 148×148，凹槽寬 18px，中心線半徑 65
+const CIRC = 2 * Math.PI * RING.r;
+const ringPath = `M${RING.c} ${RING.c - RING.r} A${RING.r} ${RING.r} 0 1 1 ${RING.c} ${RING.c + RING.r} A${RING.r} ${RING.r} 0 1 1 ${RING.c} ${RING.c - RING.r}`;
 function ring(b) {
   const p = pct(b);
-  return `<div class="ring" role="img" aria-label="閱讀進度 ${p}%">
-    <svg viewBox="0 0 116 116"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9466"/><stop offset="1" stop-color="#e2531c"/></linearGradient></defs>
-      <circle class="arc" cx="58" cy="58" r="48" stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${(CIRC * (1 - p / 100)).toFixed(1)}" style="opacity:${p ? 1 : 0}"/></svg>
+  return `<div class="ring" role="img" aria-label="閱讀進度 ${p}%" style="--a:${p * 3.6}deg">
+    <svg viewBox="0 0 148 148" aria-hidden="true">
+      <defs>
+        <linearGradient id="ringGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="148" y2="148"><stop offset="0" stop-color="#ffa47a"/><stop offset=".5" stop-color="#f2632b"/><stop offset="1" stop-color="#d9501c"/></linearGradient>
+        <radialGradient id="ringBall" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="#ffc3a3"/><stop offset=".25" stop-color="#ff9466"/><stop offset=".62" stop-color="#f2632b"/><stop offset="1" stop-color="#c9461a"/></radialGradient>
+      </defs>
+      <path class="arc" d="${ringPath}" stroke-dasharray="${CIRC.toFixed(2)}" stroke-dashoffset="${(CIRC * (1 - p / 100)).toFixed(2)}" style="opacity:${p ? 1 : 0}"/>
+      <g class="knob"><circle cx="${RING.c}" cy="${RING.c - RING.r}" r="8" fill="url(#ringBall)"/></g>
+    </svg>
     <div class="num"><b>${p}<span style="font-size:15px">%</span></b><small>${b.pages ? `共 ${b.pages} 頁` : "未填頁數"}</small></div></div>`;
+}
+function setRing(p) {
+  const r = $(".ring"); if (!r) return;
+  r.style.setProperty("--a", `${p * 3.6}deg`);
+  r.setAttribute("aria-label", `閱讀進度 ${p}%`);
+  const arc = r.querySelector(".arc"); arc.style.opacity = p ? 1 : 0; arc.setAttribute("stroke-dashoffset", (CIRC * (1 - p / 100)).toFixed(2));
+  r.querySelector(".num b").innerHTML = `${p}<span style="font-size:15px">%</span>`;
 }
 
 function renderDetail() {
@@ -232,8 +254,7 @@ function queueProgress(id, v, writeBack = true) {
   v = Math.min(MAX_PAGES, Math.max(0, Math.round(v || 0))); if (b.pages) v = Math.min(v, b.pages);
   progVal = v; if (writeBack) $("#cur").value = v;
   const p = b.pages ? Math.round(v / b.pages * 100) : 0;
-  const arc = $(".ring .arc"); if (arc) { arc.style.opacity = p ? 1 : 0; arc.setAttribute("stroke-dashoffset", (CIRC * (1 - p / 100)).toFixed(1)); }
-  const num = $(".ring .num b"); if (num) num.innerHTML = `${p}<span style="font-size:15px">%</span>`;
+  setRing(p);
   clearTimeout(progT);
   progT = setTimeout(() => {
     const cur = book(id); if (!cur || cur.current === progVal) return;
@@ -594,6 +615,7 @@ function openInShelf(id) {
 /* ───────── 啟動 ───────── */
 function render(reset) { renderWho(); renderToolbar(); renderShelf(reset); renderWords(); if (S.view === "notes") renderNotes(); if (S.view === "manage") renderManage(); }
 const onData = (books, words) => {
+  S.ready = true;
   if (!progT || document.activeElement?.id !== "cur") progVal = null;
   S.books = books.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b)) || a.title.localeCompare(b.title, "zh-Hant"));
   S.words = words.slice().sort((a, b) => (b.at || "").localeCompare(a.at || ""));
@@ -602,6 +624,8 @@ const onData = (books, words) => {
 };
 const onAuth = a => {
   S.auth = a;
+  if (a.mode === "cloud" && a.user) S.ready = false;   // 換帳號時等新資料
+  if (a.mode === "cloud" && !a.user) S.ready = true;
   if (a.message) toast(a.message, true);
   render(true);
 };

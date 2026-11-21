@@ -1,6 +1,6 @@
 // 儲存層：有 Firebase 設定時用 Google 登入 + Firestore（每位使用者一個私人空間），
 // 否則退回 localStorage 本機模式。兩者提供相同介面。
-import { firebaseConfig } from "./config.js?v=202611211236";
+import { firebaseConfig } from "./config.js?v=202611211246";
 
 const FB = "https://www.gstatic.com/firebasejs/10.12.2";
 
@@ -85,11 +85,12 @@ async function firebaseStore(onData, onAuth) {
     books = []; words = [];
     uid = user?.uid || null;
     onAuth({ mode: "cloud", user: user ? { name: user.displayName, email: user.email, photo: user.photoURL } : null });
-    onData([], []);
-    if (!uid) return;
+    // 登出時清空畫面；登入時等雲端第一批資料回來再畫，避免閃出「書櫃是空的」
+    if (!uid) { onData([], []); return; }
     const col = name => fs.collection(db, "users", uid, name);
+    const got = new Set();
     const sub = (name, set) => fs.onSnapshot(col(name),
-      snap => { set(snap.docs.map(d => ({ id: d.id, ...d.data() }))); onData(books, words); },
+      snap => { set(snap.docs.map(d => ({ id: d.id, ...d.data() }))); got.add(name); if (got.size === 2) onData(books, words); },
       err => onAuth({ mode: "cloud", user: { name: user.displayName }, message: "讀取失敗：" + err.code }));
     unsubs.push(sub("books", v => (books = v)), sub("words", v => (words = v)));
   });
