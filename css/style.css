@@ -15,6 +15,7 @@
   --accent: #f2632b;
   --accent-hi: #ff9466;
   --accent-lo: #cf4a17;
+  --accent-ink: #ad3d11;               /* 橘色文字（對比 ≥ 4.5） */
   --on-accent: #fff;
   --danger: #c8442b;
   --sd: rgba(163, 172, 188, .55);      /* 暗面陰影 */
@@ -45,6 +46,7 @@
     --ink: #e8eaee; --ink-2: #c3c7ce; --mute: #8e949d; --faint: #5d636c;
     --sd: rgba(0, 0, 0, .5); --sl: rgba(255, 255, 255, .055);
     --ball-shadow: 4px 6px 14px rgba(242, 99, 43, .28), 1px 2px 4px rgba(0, 0, 0, .4);
+    --accent-ink: #ff9466;
     color-scheme: dark;
   }
 }
@@ -103,6 +105,8 @@ svg { width: 20px; height: 20px; flex: none; }
 .seg button[aria-pressed="true"] { color: var(--ink); background: var(--base-hi); box-shadow: var(--raise-sm); }
 .seg button::after { content: ""; position: absolute; inset: -4px -2px; }
 .seg-sm button { min-height: 36px; padding: 0 14px; font-size: 14px; }
+.seg button em { font-style: normal; font-size: 12px; margin-left: 6px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.seg button em:empty { display: none; }
 
 /* ─── 頂欄 ─── */
 .top {
@@ -255,6 +259,12 @@ label.lab { display: grid; gap: 8px; font-size: 13px; color: var(--mute); font-w
 .note header { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--mute); margin-bottom: 6px; }
 .note header .pg { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 .note p { margin: 0; font: 400 16px/1.85 var(--serif); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+/* 長筆記：展開／收合 */
+.note .more { position: relative; margin-top: 4px; padding: 2px 0; border: 0; background: none; font: 700 13px/1.6 var(--sans); color: var(--accent-ink, var(--accent)); cursor: pointer; }
+.note .more::after { content: ""; position: absolute; inset: -12px -10px; }
+.note .more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.note .more:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.cls-hint { margin-top: -10px; }
 .note .del { position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity .2s; box-shadow: none; background: transparent; }
 .note:hover .del, .note .del:focus-visible { opacity: 1; }
 .empty-line { color: var(--mute); font-size: 14px; text-align: center; padding: 14px 0 4px; }

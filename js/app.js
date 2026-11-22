@@ -1,10 +1,11 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261121124708";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261121124708";
-import { lookupIsbn, translateWord } from "./api.js?v=20261121124708";
-import { createStore, demoStore } from "./store.js?v=20261121124708";
-import { createFlow } from "./flow.js?v=20261121124708";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261122060027";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261122060027";
+import { lookupIsbn, translateWord } from "./api.js?v=20261122060027";
+import { createStore, demoStore } from "./store.js?v=20261122060027";
+import { createFlow } from "./flow.js?v=20261122060027";
+import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261122060027";
 
-const APP_VERSION = "20261121124708";
+const APP_VERSION = "20261122060027";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -23,12 +24,12 @@ const MAX_PAGES = 999;
 let restoringFocus = false;
 const deweyName = m => (m == null ? "未分類" : DEWEY.find(d => d.c === m)?.name || "");
 
-// 沒有封面圖時的書封配色：低彩度、和介面同一個調子
-const PAL = [["#3e4652", "#59626f", "#fff"], ["#e4ded3", "#f1ece3", "#3a3a3a"], ["#f2632b", "#ff8a57", "#fff"], ["#6e8b7a", "#86a291", "#fff"],
-  ["#9a5a4a", "#b8735f", "#fff"], ["#2f4f6e", "#46698c", "#fff"], ["#c8a35a", "#dcbb76", "#2c2a25"], ["#77708f", "#9089a9", "#fff"]];
-const pal = t => { let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PAL[h % PAL.length]; };
+// 沒有封面圖時的書封配色：依分類主題取色（低彩度），見 classify.js
+const pal = b => [...subjectColors(b), "#fff"];
+// 筆記摺疊：超過這個字數就收起來
+const NOTE_CLIP = { shelf: 30, notes: 50 };
 
-const S = { ready: false, books: [], words: [], selId: null, group: "dewey", filter: "all", wFilter: "all", auth: null, view: "shelf", wordMsg: null, sig: "" };
+const S = { ready: false, books: [], words: [], selId: null, group: null, filter: "all", openNotes: new Set(), wFilter: "all", auth: null, view: "shelf", wordMsg: null, sig: "" };
 let store = null;
 
 /* ───────── 提示 ───────── */
@@ -45,24 +46,36 @@ const pct = b => (b.pages ? Math.min(100, Math.round(((b.current || 0) / b.pages
 const gated = () => store?.mode === "cloud" && S.auth?.mode === "cloud" && !S.auth.user;
 const canWrite = () => store && !gated();
 
-/* ───────── 分類 ───────── */
-const keyOf = b => (S.group === "dewey" ? (b.deweyMain ?? -1) : (b.shelf || "未分類"));
-const labelOf = k => (S.group === "dewey" ? (k === -1 ? "未分類" : `${pad3(k)} ${deweyName(k)}`) : k);
-const sortKey = b => (b.deweyMain == null ? "999" : (b.dewey || pad3(b.deweyMain)).padEnd(12, "0"));
-const visible = () => S.books.filter(b => S.filter === "all" || keyOf(b) === S.filter);
+/* ───────── 分類：中文書用中文圖書分類法、英文書用杜威（見 classify.js） ───────── */
+const inGroup = () => S.books.filter(b => shelfOf(b) === S.group);
+const keyOf = b => classOf(b).main ?? -1;
+const labelOf = k => k === -1 ? "未分類" : `${pad3(k)} ${S.group === "zh" ? cclMainName(k) : deweyName(k)}`;
+const sortKey = b => classSortKey(b);
+const visible = () => inGroup().filter(b => S.filter === "all" || keyOf(b) === S.filter);
+// 分類文字：「873 英國文學」＋是否推算
+const classText = (b, { long = false } = {}) => {
+  const c = classOf(b);
+  if (c.main == null) return "未分類";
+  return `<b>${esc(c.number || pad3(c.main))}</b> ${esc(c.name)}${c.guessed ? (long ? `（${esc(c.from || "推算")}）` : "（推算）") : ""}`;
+};
 
 function renderToolbar() {
-  const counts = new Map();
-  S.books.forEach(b => counts.set(keyOf(b), (counts.get(keyOf(b)) || 0) + 1));
+  // 第一次拿到資料時，預設打開有書的那一櫃（中文書優先）
+  if (!S.group) S.group = S.books.some(b => shelfOf(b) === "zh") || !S.books.length ? "zh" : "en";
+  const books = inGroup(), counts = new Map();
+  books.forEach(b => counts.set(keyOf(b), (counts.get(keyOf(b)) || 0) + 1));
   if (S.filter !== "all" && !counts.has(S.filter)) S.filter = "all";
-  const keys = [...counts.keys()].sort((a, b) => S.group === "dewey" ? (a === -1 ? 1e4 : a) - (b === -1 ? 1e4 : b) : String(a).localeCompare(String(b), "zh-Hant"));
-  const all = [["all", "全部", S.books.length], ...keys.map(k => [k, labelOf(k), counts.get(k)])];
+  const keys = [...counts.keys()].sort((a, b) => (a === -1 ? 1e4 : a) - (b === -1 ? 1e4 : b));
+  const all = [["all", "全部", books.length], ...keys.map(k => [k, labelOf(k), counts.get(k)])];
   $("#chips").innerHTML = gated() ? "" : all.map(([k, l, n], i) => `<button class="chip" data-i="${i}" aria-pressed="${S.filter === k}">${esc(l)}<em>${n}</em></button>`).join("");
   $("#chips").onclick = e => {
     const c = e.target.closest("[data-i]"); if (!c) return;
     const i = +c.dataset.i; S.filter = all[i][0]; renderToolbar(); renderShelf(true);
   };
-  document.querySelectorAll("#grouping button").forEach(b => b.setAttribute("aria-pressed", b.dataset.g === S.group));
+  document.querySelectorAll("#grouping button").forEach(b => {
+    b.setAttribute("aria-pressed", b.dataset.g === S.group);
+    b.querySelector("em").textContent = S.books.filter(x => shelfOf(x) === b.dataset.g).length;
+  });
   $("#grouping").hidden = gated();
   $("#demoBar").innerHTML = store?.mode === "demo" ? `<span class="demo-pill">範例模式<span class="long">・資料只存在這台裝置</span><button class="btn btn-sm" data-act="exitDemo">結束</button></span>` : "";
 }
@@ -90,7 +103,7 @@ function jumpToWork() {
 function coverNode(b) {
   const el = document.createElement("div");
   el.className = "book";
-  const [c1, c2, fg] = pal(b.title);
+  const [c1, c2, fg] = pal(b);
   el.innerHTML = `<div class="cover" style="background:linear-gradient(150deg,${c1},${c2});color:${fg}">
     <div class="t">${esc(b.title)}</div><div class="rule"></div><div class="a">${esc(b.author || "")}</div>
     ${b.cover ? `<img src="${esc(b.cover)}" alt="" draggable="false" referrerpolicy="no-referrer">` : ""}
@@ -121,14 +134,18 @@ function renderShelf(reset = false) {
   }
   if (!list.length) {
     msg.hidden = false;
-    msg.innerHTML = S.books.length
-      ? `<h2>這個分類還沒有書</h2><p>換個分類看看，或新增一本。</p>`
-      : `<h2>書櫃還是空的</h2><p>輸入 ISBN，書名、作者、封面和杜威分類會自動帶入。</p><div class="row"><button class="btn accent" data-act="add">${icon("plus")}新增第一本書</button></div>`;
+    const other = S.group === "zh" ? "英文書" : "中文書";
+    msg.innerHTML = !S.books.length
+      ? `<h2>書櫃還是空的</h2><p>輸入 ISBN，書名、作者、封面和分類會自動帶入。中文書用中文圖書分類法，英文書用杜威分類法。</p>`
+      : !inGroup().length
+      ? `<h2>還沒有${S.group === "zh" ? "中文書" : "英文書"}</h2><p>你的書目前都在「${other}」。</p><div class="row"><button class="btn" data-g-switch="${S.group === "zh" ? "en" : "zh"}">看${other}</button></div>`
+      : `<h2>這個分類還沒有書</h2><p>換個分類看看，或新增一本。</p>`;
+    if (!S.books.length) msg.innerHTML += `<div class="row"><button class="btn accent" data-act="add">${icon("plus")}新增第一本書</button></div>`;
     flow.setItems([]); S.sig = ""; renderDetail(); return;
   }
   msg.hidden = true;
   // 書的順序和封面沒變時只更新進度，避免重建 DOM 造成閃爍
-  const sig = list.map(b => b.id + "|" + b.cover + "|" + b.title).join("¦");
+  const sig = list.map(b => b.id + "|" + b.cover + "|" + b.title + "|" + pal(b)[0]).join("¦");
   if (!reset && sig === S.sig) {
     flow.update((nd, i) => { const p = nd.querySelector(".p"), b = list[i]; p.hidden = !b.pages; p.firstElementChild.style.width = pct(b) + "%"; });
     renderCaption(list[flow.index]); renderDetail(); return;
@@ -141,7 +158,7 @@ function renderShelf(reset = false) {
 function renderCaption(b) {
   if (!b) { $("#cap").innerHTML = ""; return; }
   const list = visible(), i = list.indexOf(b);
-  $("#cap").innerHTML = `<h2>${esc(b.title)}</h2><p>${b.author ? `<span class="by">${esc(b.author)}・</span>` : ""}<b>${esc(b.dewey || (b.deweyMain != null ? pad3(b.deweyMain) : "—"))}</b> ${esc(deweyName(b.deweyMain))}・${i + 1} / ${list.length}</p>`;
+  $("#cap").innerHTML = `<h2>${esc(b.title)}</h2><p>${b.author ? `<span class="by">${esc(b.author)}・</span>` : ""}${classText(b)}・${i + 1} / ${list.length}</p>`;
 }
 $("#prev").onclick = () => flow.go(-1);
 $("#next").onclick = () => flow.go(1);
@@ -173,6 +190,22 @@ function setRing(p) {
   r.querySelector(".num b").innerHTML = `${p}<span style="font-size:15px">%</span>`;
 }
 
+/**
+ * 筆記內文：超過 limit 個字就收起來，可點「展開全文」。
+ * q：搜尋字（筆記頁用）；命中的字落在被收起的部分時自動展開。mark：把文字轉成 HTML（含搜尋高亮）的函式。
+ */
+function noteBody(n, limit, q = "", mark = esc) {
+  const chars = Array.from(n.text || "");
+  const long = chars.length > limit;
+  const hitAt = q ? Array.from(n.text.toLowerCase().slice(0, Math.max(0, n.text.toLowerCase().indexOf(q)))).length : -1;
+  const autoOpen = q && n.text.toLowerCase().includes(q) && hitAt + Array.from(q).length > limit;
+  const open = !long || S.openNotes.has(n.id) || autoOpen;
+  const shown = open ? n.text : chars.slice(0, limit).join("") + "…";
+  const btn = long && !autoOpen
+    ? `<button type="button" class="more" data-note-toggle="${n.id}" aria-expanded="${open}">${open ? "收合" : `展開全文・共 ${chars.length} 字`}</button>` : "";
+  return `<p>${mark(shown)}</p>${btn}`;
+}
+
 function renderDetail() {
   const el = $("#detail"), b = book(S.selId);
   if (gated() || !b || !visible().includes(b)) { el.innerHTML = ""; return; }
@@ -200,8 +233,7 @@ function renderDetail() {
       </div>
       <dl class="meta">
         <dt>作者</dt><dd>${esc(b.author || "—")}</dd>
-        <dt>杜威分類</dt><dd><b>${esc(b.dewey || (b.deweyMain != null ? pad3(b.deweyMain) : "—"))}</b> ${esc(deweyName(b.deweyMain))}${b.deweyGuessed ? "（推測）" : ""}</dd>
-        ${b.shelf ? `<dt>我的分類</dt><dd>${esc(b.shelf)}</dd>` : ""}
+        <dt>${classOf(b).sysName}</dt><dd>${classText(b, { long: true })}</dd>
         <dt>ISBN</dt><dd>${fmtIsbn(b.isbn)}${b.isbn ? `・${esc(isbnRegion(b.isbn))}出版` : ""}</dd>
         ${b.publisher ? `<dt>出版</dt><dd>${esc(b.publisher)} ${esc(String(b.published || "").match(/\d{4}/)?.[0] || "")}</dd>` : ""}
       </dl>
@@ -223,7 +255,7 @@ function renderDetail() {
         <button class="btn accent">加入筆記</button>
       </div>
     </form>
-    <ul class="notes">${(b.notes || []).slice().reverse().map(n => `<li class="note"><header>${n.page ? `<span class="pg">p.${esc(n.page)}</span>` : ""}<span>${esc(n.at)}</span></header><p>${esc(n.text)}</p><button class="btn-round icon-btn del" data-del-note="${n.id}" aria-label="刪除這則筆記">${icon("x")}</button></li>`).join("") || '<li class="empty-line">還沒有筆記。</li>'}</ul>
+    <ul class="notes">${(b.notes || []).slice().reverse().map(n => `<li class="note"><header>${n.page ? `<span class="pg">p.${esc(n.page)}</span>` : ""}<span>${esc(n.at)}</span></header>${noteBody(n, NOTE_CLIP.shelf)}<button class="btn-round icon-btn del" data-del-note="${n.id}" aria-label="刪除這則筆記">${icon("x")}</button></li>`).join("") || '<li class="empty-line">還沒有筆記。</li>'}</ul>
   </div>`;
   if (sameBook) {
     if (draft) $("#nText").value = draft;
@@ -357,7 +389,28 @@ $("#rev").addEventListener("keydown", e => { if (e.key === " " && e.target.id ==
 
 /* ───────── 新增／編輯書籍 ───────── */
 const dBook = $("#dBook");
-const mainOptions = sel => `<option value="">未分類</option>` + DEWEY.map(d => `<option value="${d.c}"${sel === d.c ? " selected" : ""}>${pad3(d.c)} ${d.name}</option>`).join("");
+const mainOptions = (sel, list = DEWEY) => `<option value="">未分類</option>` + list.map(d => `<option value="${d.c}"${sel === d.c ? " selected" : ""}>${pad3(d.c)} ${d.name}</option>`).join("");
+/** 中文分類若是由杜威推算的，記下推算值；送出時沒改過就標成「推算」 */
+let cclDerived = null;
+function deriveCcl(dewey, deweyMain) {
+  const d = dewey ? deweyToCcl(dewey) : null;
+  if (d) return { ...d, from: `由杜威 ${dewey} 推算` };
+  const m = deweyMainToCclMain(deweyMain);
+  return m == null ? null : { number: "", main: m, from: "由杜威大類推算" };
+}
+function fillCcl(d) {
+  cclDerived = d;
+  $("#fCcl").value = d?.number || ""; $("#fCclMain").value = d?.main ?? "";
+  showClsHint();
+}
+function showClsHint() {
+  const h = $("#fClsHint"); if (!h) return;
+  const zh = $("#fLang").value === "zh";
+  const d = cclDerived, same = d && $("#fCcl").value.trim() === d.number && $("#fCclMain").value === String(d.main);
+  h.textContent = zh
+    ? (same ? `${d.from}，僅供參考，可以直接修改。` : "中文書使用中文圖書分類法（2007 年版）。")
+    : "英文及其他外文書使用杜威十進分類法。";
+}
 let found = null;
 
 function openBook(b = null) {
@@ -369,18 +422,20 @@ function openBook(b = null) {
     ${b ? "" : `<div class="isbn-row"><input class="field" id="fIsbn" inputmode="numeric" autocomplete="off" placeholder="輸入 ISBN，例如 9789861371955" aria-label="ISBN"><button type="button" class="btn accent" id="lookup">${icon("search")}查詢</button></div>
     <p class="hint" id="isbnMsg">查不到的書也可以直接填寫下面的欄位。</p><div id="foundBox"></div>`}
     <label class="lab">書名<input class="field" id="fTitle" required value="${esc(b?.title || "")}"></label>
+    <label class="lab">作者<input class="field" id="fAuthor" value="${esc(b?.author || "")}"></label>
     <div class="grid2">
-      <label class="lab">作者<input class="field" id="fAuthor" value="${esc(b?.author || "")}"></label>
+      <label class="lab">語言<select class="field" id="fLang">${LANGS.map(([v, l]) => `<option value="${v}"${(b?.lang || "zh") === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
       <label class="lab">總頁數<input class="field pg-num pages-field" id="fPages" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="最多 999" value="${b?.pages || ""}"></label>
     </div>
-    <div class="grid2">
+    <div class="grid2" id="rowCcl">
+      <label class="lab">中文圖書分類號<input class="field" id="fCcl" inputmode="decimal" placeholder="例如 177.2" value=""></label>
+      <label class="lab">中文分類大類<select class="field" id="fCclMain">${mainOptions(null, CCL)}</select></label>
+    </div>
+    <div class="grid2" id="rowDdc">
       <label class="lab">杜威號碼<input class="field" id="fDewey" inputmode="decimal" placeholder="例如 158.1" value="${esc(b?.dewey || "")}"></label>
       <label class="lab">杜威大類<select class="field" id="fMain">${mainOptions(b?.deweyMain ?? null)}</select></label>
     </div>
-    <div class="grid2">
-      <label class="lab">我的分類<input class="field" id="fShelf" list="shelfList" placeholder="例如：課堂指定" value="${esc(b?.shelf || "")}"><datalist id="shelfList">${[...new Set(S.books.map(x => x.shelf).filter(Boolean))].map(s => `<option value="${esc(s)}">`).join("")}</datalist></label>
-      <label class="lab">語言<select class="field" id="fLang">${LANGS.map(([v, l]) => `<option value="${v}"${(b?.lang || "zh") === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
-    </div>
+    <p class="hint cls-hint" id="fClsHint"></p>
     <div class="sheet-foot">
       ${b ? `<button type="button" class="btn ghost danger" data-act="delBook">移除這本書</button>` : ""}
       <span class="grow"></span>
@@ -388,6 +443,23 @@ function openBook(b = null) {
       <button class="btn accent">${b ? "儲存" : "放上書櫃"}</button>
     </div>`;
   f.dataset.id = b?.id || "";
+  // 中文分類：已有就帶入；舊資料只有杜威的，先帶入推算值
+  cclDerived = null;
+  if (b && (b.ccl || b.cclMain != null)) {
+    $("#fCcl").value = b.ccl || ""; $("#fCclMain").value = b.cclMain ?? "";
+    if (b.cclGuessed) cclDerived = { number: b.ccl || "", main: b.cclMain, from: b.dewey ? `由杜威 ${b.dewey} 推算` : "由杜威大類推算" };
+  } else if (b) fillCcl(deriveCcl(b.dewey, b.deweyMain));
+  const syncLang = () => {
+    const zh = $("#fLang").value === "zh";
+    $("#rowCcl").hidden = !zh; $("#rowDdc").hidden = zh;
+    if (zh && !$("#fCcl").value && !$("#fCclMain").value) fillCcl(deriveCcl($("#fDewey").value.trim(), $("#fMain").value === "" ? null : +$("#fMain").value));
+    showClsHint();
+  };
+  $("#fLang").onchange = syncLang;
+  $("#fCcl").oninput = () => { const c = parseCcl($("#fCcl").value); if (c) $("#fCclMain").value = c.main; showClsHint(); };
+  $("#fCclMain").onchange = showClsHint;
+  $("#fDewey").oninput = () => { const d = parseDewey($("#fDewey").value); if (d) $("#fMain").value = d.main; };
+  syncLang();
   dBook.showModal();
   if (!b) {
     const isbn = $("#fIsbn");
@@ -412,10 +484,16 @@ async function doLookup() {
     $("#fTitle").value = r.title; $("#fAuthor").value = r.author;
     if (r.pages) $("#fPages").value = Math.min(r.pages, MAX_PAGES);
     $("#fLang").value = r.lang; $("#fDewey").value = r.dewey; $("#fMain").value = r.deweyMain ?? "";
+    fillCcl(deriveCcl(r.dewey, r.deweyMain));
+    $("#fLang").onchange();
     $("#foundBox").innerHTML = `<div class="found">${r.cover ? `<img src="${esc(r.cover)}" alt="" referrerpolicy="no-referrer">` : '<span class="ph"></span>'}
       <div><b>${esc(r.title)}</b><span>${esc(r.author || "")}${r.publisher ? "・" + esc(r.publisher) : ""}</span></div></div>`;
     const im = $("#foundBox img"); if (im) im.onerror = () => { im.replaceWith(Object.assign(document.createElement("span"), { className: "ph" })); };
-    msg.textContent = r.dewey ? `杜威號碼 ${r.dewey}：${deweyName(r.deweyMain)}` : r.deweyMain != null ? `沒有正式杜威號碼，依主題推測為「${deweyName(r.deweyMain)}」，可以再調整。` : "查不到杜威分類，請自行選擇大類。";
+    if (r.lang === "zh") {
+      const c = cclDerived;
+      msg.textContent = c?.number ? `已帶入資料；中文分類號 ${c.number}（${cclName(c.number, c.main)}）由杜威號碼推算。`
+        : c ? `已帶入資料；依主題推算為「${cclMainName(c.main)}」，可以再調整。` : "已帶入資料；查不到分類，請自行選擇中文分類大類。";
+    } else msg.textContent = r.dewey ? `杜威號碼 ${r.dewey}：${deweyName(r.deweyMain)}` : r.deweyMain != null ? `沒有正式杜威號碼，依主題推測為「${deweyName(r.deweyMain)}」，可以再調整。` : "查不到杜威分類，請自行選擇大類。";
   } catch (e) { console.error(e); msg.textContent = "連不上書籍資料庫，請確認網路，或先手動填寫。"; }
   finally { btn.disabled = false; }
 }
@@ -425,8 +503,13 @@ $("#fBook").addEventListener("submit", async e => {
   const id = $("#fBook").dataset.id, old = id ? book(id) : null;
   const title = $("#fTitle").value.trim();
   if (!title) { $("#fTitle").focus(); return; }
+  const zh = $("#fLang").value === "zh";
   const raw = $("#fDewey").value.trim(), dd = parseDewey(raw);
-  if (raw && !dd) { toast("杜威號碼格式不正確，例如 158.1", true); $("#fDewey").focus(); return; }
+  if (!zh && raw && !dd) { toast("杜威號碼格式不正確，例如 158.1", true); $("#fDewey").focus(); return; }
+  const cRaw = $("#fCcl").value.trim(), cc = parseCcl(cRaw);
+  if (zh && cRaw && !cc) { toast("中文圖書分類號格式不正確，例如 177.2", true); $("#fCcl").focus(); return; }
+  const cSel = $("#fCclMain").value, cMain = cc ? cc.main : cSel === "" ? null : +cSel;
+  const cGuessed = !!cclDerived && (cc?.number || "") === cclDerived.number && cMain === cclDerived.main;
   const sel = $("#fMain").value, main = dd ? dd.main : sel === "" ? null : +sel;
   let isbn = old?.isbn || null;
   if (!old) {
@@ -441,7 +524,7 @@ $("#fBook").addEventListener("submit", async e => {
   const pages = Math.min(MAX_PAGES, +$("#fPages").value || 0) || null;
   const doc = { ...base, title, author: $("#fAuthor").value.trim(), pages, current: pages ? Math.min(base.current || 0, pages) : base.current || 0,
     dewey: dd?.number || "", deweyMain: main, deweyGuessed: old ? (old.deweyGuessed && old.deweyMain === main && !dd) : guessed,
-    shelf: $("#fShelf").value.trim(), lang: $("#fLang").value };
+    ccl: cc?.number || "", cclMain: cMain, cclGuessed: cGuessed, lang: $("#fLang").value };
   const newId = id || "b_" + uid();
   if (!old) S.selId = newId;
   dBook.close();
@@ -465,7 +548,7 @@ function renderWho() {
 
 /* ───────── 縮圖（筆記總覽、書籍管理共用） ───────── */
 function thumb(b) {
-  const [c1, c2, fg] = pal(b.title);
+  const [c1, c2, fg] = pal(b);
   return `<span class="thumb" style="background:linear-gradient(150deg,${c1},${c2});color:${fg}"><span>${esc(b.title.slice(0, 8))}</span>${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>`;
 }
 
@@ -489,7 +572,7 @@ function renderNotes() {
         <button class="btn btn-sm" data-open="${b.id}">寫筆記</button>
       </header>
       <ul class="notes">${notes.slice().sort((x, y) => (+y.page || 0) - (+x.page || 0) || y.at.localeCompare(x.at)).map(n => `
-        <li class="note"><header>${n.page ? `<span class="pg">p.${esc(n.page)}</span>` : ""}<span>${esc(n.at)}</span></header><p>${hl(n.text)}</p>
+        <li class="note"><header>${n.page ? `<span class="pg">p.${esc(n.page)}</span>` : ""}<span>${esc(n.at)}</span></header>${noteBody(n, NOTE_CLIP.notes, q, hl)}
         <button class="btn-round icon-btn del" data-del-note="${n.id}" data-note-book="${b.id}" aria-label="刪除這則筆記">${icon("x")}</button></li>`).join("")}</ul>
     </article>`).join("")
     || (q ? `<div class="empty-box"><b>找不到符合「${esc(q)}」的筆記</b></div>` : `<div class="empty-box"><b>還沒有筆記</b>在書櫃點一本書，就可以開始寫。</div>`);
@@ -518,7 +601,7 @@ function renderManage() {
     <li><label class="mrow">
       <input type="checkbox" data-pick="${b.id}" ${picked.has(b.id) ? "checked" : ""}><i class="box" aria-hidden="true"></i>
       ${thumb(b)}
-      <span class="info"><b>${esc(b.title)}</b><span>${esc(b.author || "作者未填")}・${b.deweyMain == null ? "未分類" : `${esc(b.dewey || pad3(b.deweyMain))} ${esc(deweyName(b.deweyMain))}`}</span></span>
+      <span class="info"><b>${esc(b.title)}</b><span>${esc(b.author || "作者未填")}・${classText(b)}</span></span>
       <span class="stat"><b>${b.pages ? pct(b) + "%" : "—"}</b><span>${(b.notes || []).length} 則筆記</span></span>
     </label></li>`).join("") || `<li class="empty-box"><b>書櫃是空的</b></li>`;
 }
@@ -555,6 +638,16 @@ function confirmBox(title, body, ok = "移除") {
 
 /* ───────── 全域點擊 ───────── */
 document.addEventListener("click", async e => {
+  const tg = e.target.closest("[data-note-toggle]");
+  if (tg) {
+    const id = tg.dataset.noteToggle;
+    S.openNotes.has(id) ? S.openNotes.delete(id) : S.openNotes.add(id);
+    if (S.view === "notes") renderNotes(); else renderDetail();
+    document.querySelector(`[data-note-toggle="${id}"]`)?.focus({ preventScroll: true });
+    return;
+  }
+  const gs = e.target.closest("[data-g-switch]");
+  if (gs) { S.group = gs.dataset.gSwitch; S.filter = "all"; renderToolbar(); renderShelf(true); return; }
   const t = e.target.closest("[data-act],[data-del-note],[data-del-word],[data-step],[data-status],[data-audio],[data-view],[data-open]");
   if (!t) return;
   if (t.dataset.view) return setView(t.dataset.view);

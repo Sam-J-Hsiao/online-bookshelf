@@ -1,6 +1,6 @@
 // 儲存層：有 Firebase 設定時用 Google 登入 + Firestore（每位使用者一個私人空間），
 // 否則退回 localStorage 本機模式。兩者提供相同介面。
-import { firebaseConfig } from "./config.js?v=20261121124708";
+import { firebaseConfig } from "./config.js?v=20261122060027";
 
 const FB = "https://www.gstatic.com/firebasejs/10.12.2";
 
@@ -28,6 +28,7 @@ export function demoStore(onData, onAuth) {
     const m = { books: {}, words: {} };
     DEMO_BOOKS.forEach((b, i) => { m.books["demo" + i] = { notes: [], addedAt: "2026-11-01", ...b }; });
     m.books.demo0.notes = [{ id: "n1", page: "54", at: "2026-11-12", text: "習慣是自我提升的複利。每天進步一點點，一年後的差距不是線性的。" }];
+    m.books.demo1.notes = [{ id: "n2", page: "88", at: "2026-11-15", text: "阿德勒認為，所有的煩惱都來自人際關係。課題分離的意思是：先分清楚這是誰的課題，別人怎麼看我，是別人的課題，我能決定的只有自己要怎麼做。真正的自由，就是不怕被別人討厭。" }];
     m.words.wdemo = { word: "compound", phonetic: "/ˈkɒm.paʊnd/", pos: "noun, verb, adjective", zh: "複利；複合物", def: "Made up of multiple parts or ingredients.", example: "Habits are the compound interest of self-improvement.", bookId: "demo0", score: 1, at: "2026-11-12T10:00:00Z" };
     try { localStorage.setItem(K, JSON.stringify(m)); } catch { /* ignore */ }
   }
@@ -38,14 +39,14 @@ export function demoStore(onData, onAuth) {
 
 const OL = id => `https://covers.openlibrary.org/b/id/${id}-L.jpg`;
 const DEMO_BOOKS = [
-  { title: "Atomic Habits", author: "James Clear", isbn: "9780735211292", pages: 320, current: 120, status: "reading", lang: "en", dewey: "155.24", deweyMain: 100, shelf: "自我成長", cover: OL(12886417) },
-  { title: "被討厭的勇氣", author: "岸見一郎、古賀史健", isbn: "9789861371955", pages: 304, current: 304, status: "done", lang: "zh", dewey: "158", deweyMain: 100, shelf: "自我成長", cover: OL(11565556) },
-  { title: "1984", author: "George Orwell", isbn: "9780451524935", pages: 318, current: 46, status: "reading", lang: "en", dewey: "823.912", deweyMain: 800, shelf: "經典小說", cover: OL(15257377) },
-  { title: "哈利波特：神秘的魔法石", author: "J. K. Rowling", isbn: "9789573317241", pages: 302, current: 0, status: "want", lang: "zh", dewey: "823.92", deweyMain: 800, shelf: "經典小說", cover: OL(15155833) },
-  { title: "Pride and Prejudice", author: "Jane Austen", isbn: "9780141439518", pages: 351, current: 0, status: "want", lang: "en", dewey: "823.7", deweyMain: 800, shelf: "經典小說", cover: OL(14348537) },
-  { title: "Clean Code", author: "Robert C. Martin", isbn: "", pages: 464, current: 210, status: "reading", lang: "en", dewey: "005.1", deweyMain: 0, shelf: "課堂指定", cover: "" },
-  { title: "人類大歷史", author: "哈拉瑞", isbn: "", pages: 464, current: 0, status: "want", lang: "zh", dewey: "909", deweyMain: 900, shelf: "", cover: "" },
-  { title: "設計的心理學", author: "唐納．諾曼", isbn: "", pages: 400, current: 88, status: "reading", lang: "zh", dewey: "745.2", deweyMain: 700, shelf: "課堂指定", cover: "" }
+  { title: "Atomic Habits", author: "James Clear", isbn: "9780735211292", pages: 320, current: 120, status: "reading", lang: "en", dewey: "155.24", deweyMain: 100, cover: OL(12886417) },
+  { title: "被討厭的勇氣", author: "岸見一郎、古賀史健", isbn: "9789861371955", pages: 304, current: 304, status: "done", lang: "zh", dewey: "158", deweyMain: 100, ccl: "177.2", cclMain: 100, cover: OL(11565556) },
+  { title: "1984", author: "George Orwell", isbn: "9780451524935", pages: 318, current: 46, status: "reading", lang: "en", dewey: "823.912", deweyMain: 800, cover: OL(15257377) },
+  { title: "哈利波特：神秘的魔法石", author: "J. K. Rowling", isbn: "9789573317241", pages: 302, current: 0, status: "want", lang: "zh", dewey: "823.92", deweyMain: 800, ccl: "873.57", cclMain: 800, cover: OL(15155833) },
+  { title: "Pride and Prejudice", author: "Jane Austen", isbn: "9780141439518", pages: 351, current: 0, status: "want", lang: "en", dewey: "823.7", deweyMain: 800, cover: OL(14348537) },
+  { title: "Clean Code", author: "Robert C. Martin", isbn: "", pages: 464, current: 210, status: "reading", lang: "en", dewey: "005.1", deweyMain: 0, cover: "" },
+  { title: "人類大歷史", author: "哈拉瑞", isbn: "", pages: 464, current: 0, status: "want", lang: "zh", dewey: "909", deweyMain: 900, cover: "" },
+  { title: "設計的心理學", author: "唐納．諾曼", isbn: "", pages: 400, current: 88, status: "reading", lang: "zh", dewey: "745.2", deweyMain: 700, cover: "" }
 ];
 
 function localStore(onData, onAuth, K = "online-bookshelf-v1") {
