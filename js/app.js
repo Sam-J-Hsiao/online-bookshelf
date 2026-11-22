@@ -1,11 +1,11 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261122060027";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261122060027";
-import { lookupIsbn, translateWord } from "./api.js?v=20261122060027";
-import { createStore, demoStore } from "./store.js?v=20261122060027";
-import { createFlow } from "./flow.js?v=20261122060027";
-import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261122060027";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261122060207";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261122060207";
+import { lookupIsbn, translateWord } from "./api.js?v=20261122060207";
+import { createStore, demoStore } from "./store.js?v=20261122060207";
+import { createFlow } from "./flow.js?v=20261122060207";
+import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261122060207";
 
-const APP_VERSION = "20261122060027";
+const APP_VERSION = "20261122060207";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -199,10 +199,11 @@ function noteBody(n, limit, q = "", mark = esc) {
   const long = chars.length > limit;
   const hitAt = q ? Array.from(n.text.toLowerCase().slice(0, Math.max(0, n.text.toLowerCase().indexOf(q)))).length : -1;
   const autoOpen = q && n.text.toLowerCase().includes(q) && hitAt + Array.from(q).length > limit;
-  const open = !long || S.openNotes.has(n.id) || autoOpen;
+  const key = `${S.view}:${n.id}`;   // 書櫃與筆記頁各自記住展開狀態
+  const open = !long || S.openNotes.has(key) || autoOpen;
   const shown = open ? n.text : chars.slice(0, limit).join("") + "…";
   const btn = long && !autoOpen
-    ? `<button type="button" class="more" data-note-toggle="${n.id}" aria-expanded="${open}">${open ? "收合" : `展開全文・共 ${chars.length} 字`}</button>` : "";
+    ? `<button type="button" class="more" data-note-toggle="${key}" aria-expanded="${open}">${open ? "收合" : `展開全文・共 ${chars.length} 字`}</button>` : "";
   return `<p>${mark(shown)}</p>${btn}`;
 }
 
