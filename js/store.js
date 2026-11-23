@@ -1,6 +1,6 @@
 // 儲存層：有 Firebase 設定時用 Google 登入 + Firestore（每位使用者一個私人空間），
 // 否則退回 localStorage 本機模式。兩者提供相同介面。
-import { firebaseConfig } from "./config.js?v=20261122060207";
+import { firebaseConfig } from "./config.js?v=20261123012957";
 
 const FB = "https://www.gstatic.com/firebasejs/10.12.2";
 
