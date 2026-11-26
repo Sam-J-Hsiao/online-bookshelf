@@ -1,6 +1,6 @@
 // 外部 API：書籍資料（Google Books + Open Library）與英文單字翻譯
-import { googleBooksApiKey, translation } from "./config.js?v=20261126024322";
-import { parseDewey, guessDewey } from "./dewey.js?v=20261126024322";
+import { googleBooksApiKey, translation } from "./config.js?v=20261126024457";
+import { parseDewey, guessDewey } from "./dewey.js?v=20261126024457";
 
 const getJson = async (url, opts) => {
   const r = await fetch(url, opts);
@@ -67,6 +67,9 @@ async function openLibrary(isbn) {
   };
 }
 
+/** 頁數：以 Google Books 為主，但它有時只登記電子書試閱頁數（例如 65 頁），明顯偏少時改用 Open Library */
+const pickPages = (g, o) => (g && o && g < o * 0.6 ? o : g || o || null);
+
 /** 依 ISBN 查書。回傳合併後的資料；兩邊都查不到時回傳 null。 */
 export async function lookupIsbn(isbn) {
   const [g, o] = await Promise.allSettled([googleBooks(isbn), openLibrary(isbn)]);
@@ -82,7 +85,7 @@ export async function lookupIsbn(isbn) {
     title: G?.title || O?.title || "",
     subtitle: G?.subtitle || O?.subtitle || "",
     author: G?.author || O?.author || "",
-    pages: G?.pages || O?.pages || null,
+    pages: pickPages(G?.pages, O?.pages),
     lang: G?.lang || O?.lang || "other",
     cover: G?.cover || O?.cover || `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`,
     publisher: G?.publisher || O?.publisher || "",
