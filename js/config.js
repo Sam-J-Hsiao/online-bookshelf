@@ -22,8 +22,9 @@ export const firebaseConfig = {
 };
 */
 
-// 2) Google Books API 金鑰（選填）。不填也能用，只是每日查詢額度較低。
-export const googleBooksApiKey = "";
+// 2) Google Books API 金鑰。沒有金鑰時 Google Books 會直接拒絕（匿名額度為 0），程式就只用 Open Library。
+//    這把金鑰已在 Google Cloud 限制：只能呼叫 Books API，且只接受來自 https://sam-j-hsiao.github.io/* 的請求。
+export const googleBooksApiKey = "AIzaSyDFg2EkEBFzW4FGS9CQw_McIG4dpvuaUr4";
 
 // 3) 翻譯服務。目前用免費的 MyMemory；之後接 Google Cloud Translation 時把 provider 改成 "google" 並填入金鑰。
 export const translation = {
