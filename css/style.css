@@ -430,7 +430,8 @@ dialog.sheet[open] { animation: pop .32s cubic-bezier(.2, .9, .25, 1.15); }
 .mrow { display: flex; align-items: center; gap: 18px; padding: 14px 20px; border-radius: var(--r-md); box-shadow: var(--raise-sm); cursor: pointer; transition: box-shadow .2s; }
 .mrow:has(input:checked) { box-shadow: var(--inset-sm); }
 .mrow .info { flex: 1; min-width: 0; }
-.mrow .info b { display: block; font: 700 16px/1.4 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .info > b { display: block; font: 700 16px/1.4 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .info span b { font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .mrow .info span { display: block; font-size: 13px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mrow .stat { text-align: right; font-size: 13px; color: var(--mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .mrow .stat b { display: block; color: var(--ink); font-size: 15px; font-weight: 500; }
@@ -474,3 +475,24 @@ input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 3
 .loading-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--ball); box-shadow: var(--ball-shadow); animation: bob 1s ease-in-out infinite; }
 .loading-dots i:nth-child(2) { animation-delay: .15s; } .loading-dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes bob { 50% { transform: translateY(-6px); } }
+
+/* 手機：新增／編輯書籍改為全螢幕表單，高度跟著鍵盤上方的可視範圍 */
+@media (max-width: 640px) {
+  dialog.sheet.full {
+    position: fixed; inset: auto; top: var(--vv-top, 0px); left: 0; margin: 0;
+    width: 100vw; max-width: 100vw; height: var(--vv-h, 100dvh); max-height: none;
+    border-radius: 0; box-shadow: none; overflow: hidden;
+  }
+  dialog.sheet.full[open] { animation-name: popFull; }
+  dialog.sheet.full::backdrop { background: var(--base); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  dialog.sheet.full form {
+    height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: calc(18px + env(safe-area-inset-top)) 18px 0; align-content: start;
+  }
+  dialog.sheet.full .sheet-foot {
+    position: sticky; bottom: 0; z-index: 2; margin: 0 -18px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    background: var(--base); box-shadow: 0 -1px 0 color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+  dialog.sheet.confirm, dialog.sheet.review { box-shadow: var(--raise-lg); }
+}
+@keyframes popFull { from { opacity: 0; transform: translateY(16px); } }

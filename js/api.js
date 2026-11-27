@@ -1,6 +1,6 @@
 // 外部 API：書籍資料（Google Books + Open Library）與英文單字翻譯
-import { googleBooksApiKey, translation } from "./config.js?v=20261126024457";
-import { parseDewey, guessDewey } from "./dewey.js?v=20261126024457";
+import { googleBooksApiKey, translation } from "./config.js?v=20261127160806";
+import { parseDewey, guessDewey } from "./dewey.js?v=20261127160806";
 
 const getJson = async (url, opts) => {
   const r = await fetch(url, opts);

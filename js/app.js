@@ -1,11 +1,11 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261126024457";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261126024457";
-import { lookupIsbn, translateWord } from "./api.js?v=20261126024457";
-import { createStore, demoStore } from "./store.js?v=20261126024457";
-import { createFlow } from "./flow.js?v=20261126024457";
-import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261126024457";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261127160806";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261127160806";
+import { lookupIsbn, translateWord } from "./api.js?v=20261127160806";
+import { createStore, demoStore } from "./store.js?v=20261127160806";
+import { createFlow } from "./flow.js?v=20261127160806";
+import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261127160806";
 
-const APP_VERSION = "20261126024457";
+const APP_VERSION = "20261127160806";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;
@@ -390,6 +390,21 @@ $("#rev").addEventListener("keydown", e => { if (e.key === " " && e.target.id ==
 
 /* ───────── 新增／編輯書籍 ───────── */
 const dBook = $("#dBook");
+// 手機鍵盤打開時，iOS 不縮小版面而是把畫面推上去；把可視範圍的位置與高度交給 CSS，讓表單貼齊鍵盤上方
+{
+  const vv = window.visualViewport, root = document.documentElement;
+  const syncVV = () => {
+    if (!vv) return;
+    root.style.setProperty("--vv-h", `${vv.height}px`);
+    root.style.setProperty("--vv-top", `${vv.offsetTop}px`);
+  };
+  vv?.addEventListener("resize", syncVV); vv?.addEventListener("scroll", syncVV); syncVV();
+  dBook.addEventListener("focusin", (e) => {
+    const el = e.target;
+    if (!el.matches?.("input, select, textarea")) return;
+    setTimeout(() => { syncVV(); el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 320);
+  });
+}
 const mainOptions = (sel, list = DEWEY) => `<option value="">未分類</option>` + list.map(d => `<option value="${d.c}"${sel === d.c ? " selected" : ""}>${pad3(d.c)} ${d.name}</option>`).join("");
 /** 中文分類若是由杜威推算的，記下推算值；送出時沒改過就標成「推算」 */
 let cclDerived = null;
