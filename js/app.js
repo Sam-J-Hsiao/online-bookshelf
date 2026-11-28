@@ -1,11 +1,11 @@
-import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261127160806";
-import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261127160806";
-import { lookupIsbn, translateWord } from "./api.js?v=20261127160806";
-import { createStore, demoStore } from "./store.js?v=20261127160806";
-import { createFlow } from "./flow.js?v=20261127160806";
-import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261127160806";
+import { normIsbn, fmtIsbn, isbnRegion } from "./isbn.js?v=20261128015136";
+import { DEWEY, parseDewey, pad3 } from "./dewey.js?v=20261128015136";
+import { lookupIsbn, translateWord } from "./api.js?v=20261128015136";
+import { createStore, demoStore } from "./store.js?v=20261128015136";
+import { createFlow } from "./flow.js?v=20261128015136";
+import { CCL, parseCcl, deweyToCcl, deweyMainToCclMain, cclMainName, cclName, shelfOf, classOf, classSortKey, subjectColors } from "./classify.js?v=20261128015136";
 
-const APP_VERSION = "20261127160806";
+const APP_VERSION = "20261128015136";
 // 開啟時比對伺服器上的版本；有新版就重新整理一次（每個版本最多一次，避免迴圈）
 fetch("version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(j => {
   if (!j || j.v === APP_VERSION || APP_VERSION === "dev") return;

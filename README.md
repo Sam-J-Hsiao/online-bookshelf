@@ -1,95 +1,57 @@
 # 閱讀誌
 
-閱讀誌是一個純前端的線上書櫃網站：用 ISBN 匯入書籍、記錄閱讀進度與筆記、查英文生詞並收進單字本，書架以 cover flow 呈現，並依語言分櫃：中文書用**中文圖書分類法（2007 年版）**，英文及其他外文書用**杜威十進位分類法（DDC）**。
+把讀過、正在讀、想讀的書放上一座線上書櫃，順手記下讀到哪裡、讀到什麼。
 
-## 功能
+**立即使用：<https://sam-j-hsiao.github.io/online-bookshelf/>**
 
-- **匯入書籍**：輸入 ISBN（10 或 13 碼），從 Open Library 取得書名（該版本語言，例如中文譯名）、作者、頁數、封面與杜威號碼；設定 Google Books 金鑰後會優先使用 Google Books 的書目資料。查不到也能手動輸入。
-- **分類**：書櫃分「中文書／英文書」兩櫃。英文書依杜威十大類（000–900）；中文書依中文圖書分類法十大類，書目資料通常只有杜威號碼，所以會自動換算成中文分類號並標示「推算」，可以手動修改。兩套分類法無法一對一對應（例：杜威 400 語言＋800 文學都對到中文 800；杜威 900 史地依中國／世界分成中文 600／700），換算表在 `js/classify.js`。
-- **無封面書**：依十大類取低彩度的顏色。
-- **書架**：3D cover flow，可以用左右鍵、滾輪、滑動或點擊翻書，書封下方有閱讀進度條。
-- **閱讀進度與筆記**：記錄頁數、閱讀狀態，筆記可附頁碼。
-- **英文生詞**：英文書可以查單字（Free Dictionary API 提供音標、詞性、釋義、例句；MyMemory 提供中文翻譯），並自動收進單字本。
-- **單字本**：依書篩選，用字卡複習，越不熟的字越先出現；可匯出 CSV（Excel、Numbers、Anki 都能匯入）。
-- **每位使用者的資料各自儲存**：用 Google 帳號登入，資料存在 Firestore 的 `users/{uid}/` 底下，安全規則只允許本人讀寫。
+不想先登入？按登入畫面的「先用範例書看看」，或直接開啟 [範例模式](https://sam-j-hsiao.github.io/online-bookshelf/#demo)，會放好 8 本範例書讓你試用。
 
-## 範例模式
+## 可以做什麼
 
-在網址後面加上 `#demo`（例如 `https://sam-j-hsiao.github.io/online-bookshelf/#demo`），或在登入畫面按「先用範例書看看」，就會載入 8 本範例書。範例資料只存在這台裝置，和雲端帳號完全分開，按「結束」會清掉。
+- **輸入 ISBN 就能加書**：書名、作者、頁數、封面會自動帶入。查不到的書也可以自己填。
+- **翻書櫃**：書像唱片一樣排成一列，可以滑動、點擊或用鍵盤左右鍵翻閱，書封下方會顯示讀了多少。
+- **記錄進度**：填上讀到第幾頁，標記「想讀／閱讀中／讀完」。
+- **寫筆記**：每則筆記可以附上頁碼，所有筆記也能集中在「筆記」頁瀏覽。
+- **查英文單字**：讀英文書時查生字，會顯示音標、詞性、英文解釋、例句和中文翻譯，並自動收進單字本。
+- **背單字**：用字卡複習，不熟的字會更常出現。單字本可以匯出成 CSV，用 Excel、Numbers 或 Anki 打開。
+- **自動分類**：書櫃分成中文書和英文書兩櫃。中文書使用圖書館常見的「中文圖書分類法」，英文和其他外文書使用「杜威十進位分類法」，同一類的書會排在一起。
 
-## 設計
+## 開始使用
 
-新擬物化（Neumorphism）：同色系淺灰底，元件用浮起／凹陷陰影表現層次；橘色是唯一的重點色。支援深色模式（跟隨系統）。
+1. 打開網站，用 Google 帳號登入。
+2. 按右上角的「＋」，輸入書背或版權頁上的 ISBN，按「查詢」。
+3. 確認資料無誤後，按「放上書櫃」。
 
-- 思源宋體（Noto Serif TC）：書名、筆記內文、單字、品牌字
-- 思源黑體（Noto Sans TC）：按鈕、標籤、數字等介面文字
+手機上也能用。用 Safari 或 Chrome 打開後選「加入主畫面」，之後就能像 App 一樣從桌面開啟。
 
-Cover flow 由 `js/flow.js` 驅動：位置是連續值，觸控板水平滑動會一比一跟手，慣性結束後以彈簧（約 3% 回彈、0.3 秒停穩）吸附到最近的一本；也支援拖曳甩動、鍵盤左右鍵與底部滑桿。
+## 你的資料
 
-## 發布流程
+- 登入後，書籍、筆記和單字都存在你自己的帳號底下，只有你本人看得到，換手機或電腦登入同一個帳號就能接著用。
+- 範例模式的資料只存在目前這台裝置，不會上傳，結束範例模式就會清除。
+- 網站不會蒐集或公開你的閱讀內容。
 
-每次修改後、推上 GitHub 前執行：
+## 常見問題
 
-```bash
-npm i -g acorn   # 第一次需要，用來嚴格檢查語法
-python3 tools/release.py
-```
+**查不到我的書怎麼辦？**
+書目資料來自 Google Books 和 Open Library，部分中文書或較冷門的書可能沒有收錄。查不到時，直接在下方欄位填寫書名、作者和頁數即可。
 
-它會替所有 CSS／JS 網址加上版本號（`?v=時間`），並更新 `version.json`。網站開啟時會比對版本，若伺服器上有新版就自動重新整理一次，使用者不必手動清快取。
+**分類旁邊寫著「推算」是什麼意思？**
+多數書目資料只提供杜威分類號，網站會依此換算出中文圖書分類的大類。兩套分類無法完全對應，所以標示「推算」。如果你知道正確的分類號，可以在編輯書籍時修改。
 
-## 檔案結構
+**單字的中文翻譯不太準確？**
+翻譯由免費的線上翻譯服務提供，遇到多義字時可能不夠精確，建議搭配英文解釋與例句一起看。
 
-```
-index.html          頁面骨架
-css/style.css       樣式
-js/app.js           介面與互動
-js/flow.js          cover flow 動畫引擎
-js/api.js           Google Books / Open Library / 字典與翻譯 API
-js/dewey.js         杜威分類表、號碼解析、類別推測
-js/classify.js      中文圖書分類表、杜威→中文換算、分類顯示與取色
-js/isbn.js          ISBN 驗證與轉換
-js/store.js         資料儲存（Firebase 或本機）
-js/config.js        設定（Firebase、API 金鑰）
-firestore.rules     Firestore 安全規則
-tools/release.py    發布前加版本號
-version.json        目前版本（給網站比對用）
-```
+**需要付費嗎？**
+不需要，網站免費使用。
 
-不需要建置工具，直接用靜態網站託管即可（例如 GitHub Pages）。
+## 使用的服務
 
-## 本機執行
+- 書目資料：[Google Books](https://books.google.com/)、[Open Library](https://openlibrary.org/)
+- 英文字典：[Free Dictionary API](https://dictionaryapi.dev/)
+- 中文翻譯：[MyMemory](https://mymemory.translated.net/)
+- 登入與資料儲存：[Firebase](https://firebase.google.com/)
+- 字體：思源宋體、思源黑體
 
-ES module 不能直接用 `file://` 開啟，請啟動一個簡單的伺服器：
+## 給開發者
 
-```bash
-python3 -m http.server 8000
-# 然後打開 http://localhost:8000
-```
-
-沒有設定 Firebase 時，網站以「本機模式」運作，資料只存在目前的瀏覽器。
-
-## 設定 Firebase（登入與雲端儲存）
-
-1. 到 [Firebase Console](https://console.firebase.google.com/) 建立專案。
-2. 左側選單「**安全性**」→ **Authentication** → 開始使用 → 登入方式 → 啟用 **Google**（新版主控台把 Authentication 放在「安全性」底下）。
-3. **Authentication** → 設定 → 授權網域：加入你的網站網域（例如 `sam-j-hsiao.github.io`）。
-4. **Firestore Database** → 建立資料庫 → 到「規則」分頁，貼上 `firestore.rules` 的內容並發布。
-5. 專案設定 → 一般 → 你的應用程式 → 新增網頁應用程式，複製 `firebaseConfig`，貼到 `js/config.js`。
-
-> Firebase 的網頁設定值本來就是公開的，可以放進公開儲存庫；保護資料的是第 4 步的安全規則。
-
-## 之後接 Google API
-
-- **Google Books API 金鑰（建議盡快設定）**：實測不帶金鑰時 Google Books 會直接拒絕（匿名額度為 0），所以目前程式沒有金鑰就只用 Open Library。在 Google Cloud Console 建立 API 金鑰，限制只能用於 Books API 和你的網域，填入 `js/config.js` 的 `googleBooksApiKey`，可提高查詢額度。
-- **Google Cloud Translation**：把 `js/config.js` 的 `translation.provider` 改成 `"google"` 並填入金鑰。注意：這組金鑰會出現在前端，正式上線前建議改成透過後端（例如 Firebase Cloud Functions）代為呼叫，避免被盜用而產生費用。
-
-## 資料結構（Firestore）
-
-```
-users/{uid}/books/{bookId}
-  title, author, isbn, pages, current, status, lang, cover,
-  dewey, deweyMain, deweyGuessed, shelf, publisher, published,
-  notes: [{ id, page, text, at }], addedAt
-users/{uid}/words/{wordId}
-  word, phonetic, pos, def, example, zh, bookId, score, at
-```
+想了解程式架構、在本機執行，或自己架一個？請看 [DEVELOPMENT.md](DEVELOPMENT.md)。
